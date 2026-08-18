@@ -119,6 +119,7 @@
         <button class="menu-btn" data-section="despesas">💰 Despesas</button>
         <button class="menu-btn" data-section="patrocinadores">🤝 Patrocinadores</button>
         <button class="menu-btn" data-section="doadores">🎁 Doadores</button>
+        <button class="menu-btn" data-section="necessidades">📋 Necessidades</button>
         <button class="menu-btn" data-section="config">⚙️ Config</button>
     </nav>
 
@@ -706,6 +707,44 @@
                 <table id="tabelaDoadores"><thead><tr><th>Doador</th><th>Item Doado</th><th>Valor Est.</th><th>Obs</th><th></th></tr></thead><tbody></tbody></table>
             </div>
             <div class="resumo-barraca" id="resumoDoadores"></div>
+        </section>
+
+        <!-- LISTA DE NECESSIDADES -->
+        <section id="sec-necessidades" class="section">
+            <h2>📋 Itens Necessários por Barraca</h2>
+            <p class="secao-desc">Liste os itens que cada barraca vai precisar. Use para organizar doações e compras antes da festa.</p>
+
+            <div class="painel-madeira">
+                <h3>Adicionar Item Necessário</h3>
+                <div class="form-row">
+                    <select id="necessidadeBarraca">
+                        <option value="geral">Geral (evento todo)</option>
+                    </select>
+                    <input type="text" id="necessidadeItem" placeholder="Item (ex: 10kg de carne moída, 200 pães...)">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="necessidadeQtd" placeholder="Qtd" min="1" value="1" step="1">
+                    <select id="necessidadeUnidade">
+                        <option value="un">Unidade(s)</option>
+                        <option value="kg">Kg</option>
+                        <option value="g">Gramas</option>
+                        <option value="L">Litros</option>
+                        <option value="cx">Caixa(s)</option>
+                        <option value="pct">Pacote(s)</option>
+                        <option value="fardo">Fardo(s)</option>
+                        <option value="dz">Dúzia(s)</option>
+                    </select>
+                    <input type="text" id="necessidadeObs" placeholder="Observação (opcional)">
+                    <button class="btn-venda" onclick="adicionarNecessidade()">Adicionar</button>
+                </div>
+            </div>
+
+            <div class="export-btns" style="padding:10px 0">
+                <button class="btn-export" onclick="exportarNecessidadesPDF()">📄 Exportar Lista PDF</button>
+                <button class="btn-export" onclick="exportarNecessidadesCSV()">📥 Exportar CSV</button>
+            </div>
+
+            <div id="listaNecessidades"></div>
         </section>
 
         <!-- CONFIGURAÇÕES -->
