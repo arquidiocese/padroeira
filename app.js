@@ -221,12 +221,13 @@ function lancarDespesa() {
     const destino = document.getElementById('destinoDespesa').value;
     const doacao = document.getElementById('doacaoDespesa').checked;
     const pagarDepois = document.getElementById('pagarDespesa').checked;
+    const dataVencimento = pagarDepois ? (document.getElementById('dataVencimentoDespesa').value || '') : '';
     const patrocinadorId = doacao ? (document.getElementById('patrocinadorDespesa').value || '') : '';
 
     if (!desc || isNaN(valor) || valor <= 0) return;
 
     dados.despesas.push({
-        id: Date.now(), categoria, desc, qtd, unidade, valor, local, obs, destino, doacao, pago: !pagarDepois, patrocinadorId
+        id: Date.now(), categoria, desc, qtd, unidade, valor, local, obs, destino, doacao, pago: !pagarDepois, patrocinadorId, dataVencimento
     });
     salvarDados(dados);
     document.getElementById('descDespesa').value = '';
@@ -236,8 +237,22 @@ function lancarDespesa() {
     document.getElementById('obsDespesa').value = '';
     document.getElementById('doacaoDespesa').checked = false;
     document.getElementById('pagarDespesa').checked = false;
+    document.getElementById('dataVencimentoDespesa').style.display = 'none';
+    document.getElementById('dataVencimentoDespesa').value = '';
     document.getElementById('patrocinadorDespesa').style.display = 'none';
     renderizarTudo();
+}
+
+function toggleDataVencimento() {
+    const check = document.getElementById('pagarDespesa').checked;
+    const input = document.getElementById('dataVencimentoDespesa');
+    if (input) input.style.display = check ? 'inline-block' : 'none';
+}
+
+function toggleDataVencimentoCaixa() {
+    const check = document.getElementById('caixaPagar').checked;
+    const row = document.getElementById('caixaVencimentoRow');
+    if (row) row.style.display = check ? 'flex' : 'none';
 }
 
 function removerDespesa(id) {
@@ -285,6 +300,8 @@ function renderizarDespesas() {
         const nomeDestino = d.destino === 'geral' ? 'Geral' : (NOMES_BARRACAS[d.destino] || d.destino);
         const qtdStr = d.qtd && d.unidade ? `${d.qtd} ${d.unidade}` : '-';
         const localStr = d.local || '-';
+        const vencStr = d.dataVencimento ? d.dataVencimento.split('-').reverse().join('/') : '';
+        const statusLabel = d.pago ? 'Pago' : (vencStr ? `Pagar ${vencStr}` : 'Pendente');
         return `
         <tr>
             <td><span class="badge-categoria">${d.categoria}</span></td>
@@ -294,7 +311,7 @@ function renderizarDespesas() {
             <td>R$ ${fmt(d.valor)}</td>
             <td>${localStr}</td>
             <td><span class="${d.doacao ? 'badge-doacao' : 'badge-compra'}">${d.doacao ? '🎁 ' + getNomePatrocinador(d.patrocinadorId) : 'Compra'}</span></td>
-            <td><span class="${d.pago ? 'badge-pago' : 'badge-pendente'}" onclick="togglePagoDespesa(${d.id})">${d.pago ? 'Pago' : 'Pendente'}</span></td>
+            <td><span class="${d.pago ? 'badge-pago' : 'badge-pendente'}" onclick="togglePagoDespesa(${d.id})">${statusLabel}</span></td>
             <td>
                 <button class="btn-edit" onclick="editarDespesa(${d.id})">✏️</button>
                 <button class="btn-delete" onclick="confirmarExclusao('Excluir esta despesa?', () => removerDespesa(${d.id}))">X</button>
@@ -339,6 +356,57 @@ function renderizarDespesas() {
             localEl.innerHTML = '<p style="opacity:0.5;text-align:center;padding:10px">Nenhuma compra registrada</p>';
         }
     }
+
+    // Renderizar contas a pagar
+    renderizarContasAPagar();
+}
+
+function renderizarContasAPagar() {
+    const container = document.getElementById('contasAPagar');
+    if (!container) return;
+    
+    const pendentes = (dados.despesas || []).filter(d => !d.pago && !d.doacao);
+    if (pendentes.length === 0) {
+        container.innerHTML = '<p style="opacity:0.5;text-align:center;padding:10px">Nenhuma conta pendente</p>';
+        return;
+    }
+    
+    // Ordenar por data de vencimento (sem data fica no final)
+    const ordenadas = [...pendentes].sort((a, b) => {
+        if (!a.dataVencimento && !b.dataVencimento) return 0;
+        if (!a.dataVencimento) return 1;
+        if (!b.dataVencimento) return -1;
+        return a.dataVencimento.localeCompare(b.dataVencimento);
+    });
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    const totalPendente = ordenadas.reduce((s, d) => s + d.valor, 0);
+    
+    let html = `<div class="ranking-item" style="border-bottom:2px solid var(--cor-amarelo);margin-bottom:8px;padding-bottom:8px"><span class="ranking-nome" style="color:var(--cor-amarelo);font-weight:700">Total pendente: ${R$(totalPendente)} (${ordenadas.length} itens)</span></div>`;
+    
+    ordenadas.forEach(d => {
+        let dataStr = '';
+        let statusCor = '';
+        if (d.dataVencimento) {
+            const dataFmt = d.dataVencimento.split('-').reverse().join('/');
+            if (d.dataVencimento < hoje) {
+                dataStr = `<span style="color:#ef5350;font-weight:700">⚠️ Vencido ${dataFmt}</span>`;
+                statusCor = 'border-left:3px solid #ef5350;padding-left:10px;';
+            } else if (d.dataVencimento === hoje) {
+                dataStr = `<span style="color:#ffb300;font-weight:700">⏰ Vence HOJE</span>`;
+                statusCor = 'border-left:3px solid #ffb300;padding-left:10px;';
+            } else {
+                dataStr = `<span style="color:#81c784">📅 Vence ${dataFmt}</span>`;
+                statusCor = 'border-left:3px solid #81c784;padding-left:10px;';
+            }
+        } else {
+            dataStr = '<span style="opacity:0.5">Sem data definida</span>';
+        }
+        const dest = d.destino === 'geral' ? '' : ` → ${(NOMES_BARRACAS[d.destino]||d.destino||'').replace(/^.{2}\s?/,'')}`;
+        html += `<div class="ranking-item" style="${statusCor}"><span class="ranking-nome">${d.desc}${dest}<br><small>${dataStr}</small></span><span class="ranking-valor">${R$(d.valor)}</span></div>`;
+    });
+    
+    container.innerHTML = html;
 }
 
 // ===== PATROCINADORES =====
@@ -1063,13 +1131,14 @@ function gastoRapido() {
     const categoria = document.getElementById('caixaCategoria').value;
     const doacao = document.getElementById('caixaDoacao').checked;
     const pagarDepois = document.getElementById('caixaPagar') ? document.getElementById('caixaPagar').checked : false;
+    const dataVencimento = pagarDepois ? (document.getElementById('caixaDataVencimento')?.value || '') : '';
     const patrocinadorId = doacao ? (document.getElementById('caixaPatrocinador')?.value || '') : '';
 
     if (!desc || isNaN(valor) || valor <= 0) return;
 
     dados.despesas.push({
         id: Date.now(), categoria, desc, qtd: 1, unidade: 'un',
-        valor, local: '', obs: '(Lançado rápido)', destino, doacao, pago: !pagarDepois, patrocinadorId
+        valor, local: '', obs: '(Lançado rápido)', destino, doacao, pago: !pagarDepois, patrocinadorId, dataVencimento
     });
     salvarDados(dados);
 
@@ -1083,6 +1152,8 @@ function gastoRapido() {
     document.getElementById('caixaValor').value = '';
     document.getElementById('caixaDoacao').checked = false;
     if (document.getElementById('caixaPagar')) document.getElementById('caixaPagar').checked = false;
+    if (document.getElementById('caixaDataVencimento')) document.getElementById('caixaDataVencimento').value = '';
+    if (document.getElementById('caixaVencimentoRow')) document.getElementById('caixaVencimentoRow').style.display = 'none';
     document.getElementById('caixaPatrocinadorRow').style.display = 'none';
 
     renderizarUltimosGastos();

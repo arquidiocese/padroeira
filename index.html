@@ -165,7 +165,10 @@
                         <option value="Outros">Outros</option>
                     </select>
                     <label class="checkbox-opt"><input type="checkbox" id="caixaDoacao" onchange="toggleCaixaPatrocinador()"> 🎁 Doação</label>
-                    <label class="checkbox-opt"><input type="checkbox" id="caixaPagar"> ⏳ Pagar depois</label>
+                    <label class="checkbox-opt"><input type="checkbox" id="caixaPagar" onchange="toggleDataVencimentoCaixa()"> ⏳ Pagar depois</label>
+                </div>
+                <div class="form-row" id="caixaVencimentoRow" style="display:none">
+                    <input type="date" id="caixaDataVencimento" style="width:100%;padding:10px 14px;border-radius:10px;border:2px solid rgba(245,222,179,0.25);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.85rem;font-family:'Nunito',sans-serif;">
                 </div>
                 <div class="form-row" id="caixaPatrocinadorRow" style="display:none">
                     <select id="caixaPatrocinador" style="width:100%">
@@ -581,7 +584,8 @@
                     <select id="patrocinadorDespesa" style="display:none">
                         <option value="">Selecione o patrocinador...</option>
                     </select>
-                    <label class="checkbox-opt"><input type="checkbox" id="pagarDespesa"> ⏳ Pagar depois</label>
+                    <label class="checkbox-opt"><input type="checkbox" id="pagarDespesa" onchange="toggleDataVencimento()"> ⏳ Pagar depois</label>
+                    <input type="date" id="dataVencimentoDespesa" style="display:none;padding:8px 12px;border-radius:10px;border:2px solid rgba(245,222,179,0.25);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.85rem;font-family:'Nunito',sans-serif;" placeholder="Data vencimento">
                     <button class="btn-gasto" onclick="lancarDespesa()">Lançar Despesa</button>
                 </div>
             </div>
@@ -609,6 +613,10 @@
             <div class="tabela-box" style="margin-top:15px">
                 <h4>Totais por Local de Compra</h4>
                 <div id="totaisPorLocal"></div>
+            </div>
+            <div class="tabela-box" style="margin-top:15px">
+                <h4>📅 Contas a Pagar</h4>
+                <div id="contasAPagar"></div>
             </div>
         </section>
 
