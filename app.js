@@ -1783,9 +1783,8 @@ function renderizarConfig() {
     let html = '';
     barracas.forEach(b => {
         const prods = produtos[b.id] || [];
-        const isDefault = ['fazendinha','cachorro-quente','kafta','pernil','pastel','batata-frita','doces','bar','chopp','kids','bingo','artesanato'].includes(b.id);
         html += `<div class="config-barraca">
-            <div class="config-barraca-header">${b.nome} <small>(${b.id})</small> ${!isDefault ? `<button class="btn-delete" onclick="removerBarraca('${b.id}')" style="margin-left:10px">Excluir Barraca</button>` : ''}</div>
+            <div class="config-barraca-header">${b.nome} <small>(${b.id})</small> <button class="btn-delete" onclick="removerBarraca('${b.id}')" style="margin-left:10px">Excluir Barraca</button></div>
             <div class="config-produtos">`;
         if (prods.length === 0) {
             html += '<span style="opacity:0.5;font-size:0.8rem">Preço variável / sem produtos fixos</span>';
@@ -1805,6 +1804,9 @@ function removerBarraca(id) {
     // Remover da config
     if (dados.configBarracas) {
         dados.configBarracas = dados.configBarracas.filter(b => b.id !== id);
+    } else {
+        // Se nunca salvou config, criar a partir das barracas atuais (sem a removida)
+        dados.configBarracas = BARRACAS.filter(b => b !== id).map(b => ({ id: b, nome: NOMES_BARRACAS[b] }));
     }
     if (dados.configProdutos && dados.configProdutos[id]) {
         delete dados.configProdutos[id];
@@ -1857,7 +1859,9 @@ function carregarConfigDinamica() {
     if (dados.configBarracas) {
         dados.configBarracas.forEach(b => {
             if (!BARRACAS.includes(b.id)) BARRACAS.push(b.id);
-            NOMES_BARRACAS[b.id] = b.nome;
+            // Adicionar emoji padrão se o nome não tiver
+            const temEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(b.nome);
+            NOMES_BARRACAS[b.id] = temEmoji ? b.nome : '🏪 ' + b.nome;
             // Garantir que a barraca tem dados inicializados
             if (!dados[b.id]) dados[b.id] = { vendas: [] };
         });
@@ -1920,7 +1924,10 @@ function atualizarMenuBarracas() {
         const btn = document.createElement('button');
         btn.className = 'menu-btn';
         btn.dataset.section = b;
-        btn.textContent = NOMES_BARRACAS[b] || b;
+        const nome = NOMES_BARRACAS[b] || b;
+        // Adicionar emoji padrão se não tiver
+        const temEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(nome);
+        btn.textContent = temEmoji ? nome : '🏪 ' + nome;
         btn.addEventListener('click', function() {
             document.querySelectorAll('.menu-btn').forEach(x => x.classList.remove('active'));
             this.classList.add('active');
