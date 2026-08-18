@@ -309,10 +309,10 @@ td .btn-delete:hover { background: #f44336; color: #fff; }
     border: 2px solid rgba(245, 222, 179, 0.12); transition: transform 0.2s;
 }
 .dash-card:hover { transform: translateY(-3px); }
-.dash-card h4 { font-family: 'Baloo 2', cursive; margin-bottom: 8px; font-size: 0.95rem; color: var(--cor-palha); }
+.dash-card h4 { font-family: 'Baloo 2', cursive; margin-bottom: 8px; font-size: 0.95rem; color: #ffffff; }
 .dash-card .valores { display: flex; justify-content: space-between; font-size: 0.8rem; }
-.dash-card .valores .v-receita { color: #66bb6a; font-weight: 600; }
-.dash-card .valores .v-gasto { color: #ef5350; font-weight: 600; }
+.dash-card .valores .v-receita { color: #81c784; font-weight: 600; }
+.dash-card .valores .v-gasto { color: #ef9a9a; font-weight: 600; }
 .dash-card .resultado {
     margin-top: 10px; padding-top: 10px;
     border-top: 2px solid rgba(245, 222, 179, 0.1);
@@ -322,7 +322,7 @@ td .btn-delete:hover { background: #f44336; color: #fff; }
 .dash-card .resultado.positivo { color: #66bb6a; }
 .dash-card .resultado.negativo { color: #ef5350; }
 .dash-card .itens-info {
-    text-align: center; font-size: 0.72rem; color: rgba(245,222,179,0.5); margin-top: 4px;
+    text-align: center; font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-top: 4px;
 }
 
 /* GRÁFICOS */

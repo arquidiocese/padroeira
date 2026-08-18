@@ -1813,6 +1813,8 @@ function carregarConfigDinamica() {
         dados.configBarracas.forEach(b => {
             if (!BARRACAS.includes(b.id)) BARRACAS.push(b.id);
             NOMES_BARRACAS[b.id] = b.nome;
+            // Garantir que a barraca tem dados inicializados
+            if (!dados[b.id]) dados[b.id] = { vendas: [] };
         });
     }
     if (dados.configProdutos) {
