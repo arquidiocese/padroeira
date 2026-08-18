@@ -1,0 +1,114 @@
+.ready-panel {
+  position: fixed;
+  inset: 0;
+  background-color: #0d1b3e;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.ready-panel-header {
+  text-align: center;
+  padding: 1.5rem 1rem 1rem;
+  flex-shrink: 0;
+}
+
+.ready-panel-header h1 {
+  color: #ffffff;
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ready-panel-grid {
+  flex: 1;
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  align-content: center;
+  justify-items: center;
+}
+
+/* Auto-adjust grid and font size based on order count */
+.ready-panel-grid.size-xl {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.ready-panel-grid.size-xl .order-number {
+  font-size: 8rem;
+}
+
+.ready-panel-grid.size-lg {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ready-panel-grid.size-lg .order-number {
+  font-size: 6rem;
+}
+
+.ready-panel-grid.size-md {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ready-panel-grid.size-md .order-number {
+  font-size: 4.5rem;
+}
+
+.ready-panel-grid.size-sm {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.ready-panel-grid.size-sm .order-number {
+  font-size: 3.5rem;
+}
+
+.order-number-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a237e;
+  border: 2px solid #3949ab;
+  border-radius: 1rem;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: fade-in 0.3s ease;
+}
+
+.order-number-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(57, 73, 171, 0.4);
+}
+
+.order-number {
+  color: #ffffff;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ready-panel-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ready-panel-empty p {
+  color: #6b7280;
+  font-size: 2.5rem;
+  font-weight: 500;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

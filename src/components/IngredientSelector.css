@@ -1,0 +1,87 @@
+.ingredient-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ingredient-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ingredient-group-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.ingredient-item.removed .ingredient-name {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.ingredient-item.added {
+  cursor: default;
+}
+
+.modification-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 0 0.25rem;
+}
+
+.modification-badge.removed {
+  color: #d32f2f;
+}
+
+.modification-badge.added {
+  color: #388e3c;
+}
+
+.remove-extra-btn {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+.remove-extra-btn:hover {
+  background-color: #ffebee;
+}
+
+.extras-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.add-extra-btn {
+  background-color: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  color: #2e7d32;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.add-extra-btn:hover {
+  background-color: #c8e6c9;
+}
