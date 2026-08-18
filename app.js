@@ -1783,8 +1783,9 @@ function renderizarConfig() {
     let html = '';
     barracas.forEach(b => {
         const prods = produtos[b.id] || [];
+        const isDefault = ['fazendinha','cachorro-quente','kafta','pernil','pastel','batata-frita','doces','bar','chopp','kids','bingo','artesanato'].includes(b.id);
         html += `<div class="config-barraca">
-            <div class="config-barraca-header">${b.nome} <small>(${b.id})</small></div>
+            <div class="config-barraca-header">${b.nome} <small>(${b.id})</small> ${!isDefault ? `<button class="btn-delete" onclick="removerBarraca('${b.id}')" style="margin-left:10px">Excluir Barraca</button>` : ''}</div>
             <div class="config-produtos">`;
         if (prods.length === 0) {
             html += '<span style="opacity:0.5;font-size:0.8rem">Preço variável / sem produtos fixos</span>';
@@ -1796,6 +1797,50 @@ function renderizarConfig() {
         html += `</div></div>`;
     });
     container.innerHTML = html;
+}
+
+function removerBarraca(id) {
+    if (!confirm(`Excluir a barraca "${NOMES_BARRACAS[id] || id}"? Vendas e dados vinculados serão perdidos.`)) return;
+    
+    // Remover da config
+    if (dados.configBarracas) {
+        dados.configBarracas = dados.configBarracas.filter(b => b.id !== id);
+    }
+    if (dados.configProdutos && dados.configProdutos[id]) {
+        delete dados.configProdutos[id];
+    }
+    // Remover dados de vendas
+    if (dados[id]) delete dados[id];
+    
+    // Remover do array em memória
+    const idx = BARRACAS.indexOf(id);
+    if (idx > -1) BARRACAS.splice(idx, 1);
+    delete NOMES_BARRACAS[id];
+    delete PRODUTOS_BARRACA[id];
+    
+    salvarDados(dados);
+    renderizarConfig();
+    atualizarSelectsDestino();
+    renderizarTudo();
+    alert('Barraca removida! Recarregue a página para atualizar o menu.');
+    registrarAcao(`Barraca removida: ${id}`);
+}
+
+function atualizarSelectsDestino() {
+    // Atualiza todos os selects de destino (despesas, caixa rápido, patrocínios)
+    const selects = ['destinoDespesa', 'caixaDestino', 'barracaPatrocinio'];
+    selects.forEach(selectId => {
+        const el = document.getElementById(selectId);
+        if (!el) return;
+        // Preservar opções fixas (geral/sem vínculo)
+        const primeiraOpcao = selectId === 'barracaPatrocinio' 
+            ? '<option value="">Sem vínculo com barraca</option><option value="geral">Geral (evento todo)</option>'
+            : '<option value="geral">Geral (evento todo)</option>';
+        const barracaOpts = BARRACAS.map(b => 
+            `<option value="${b}">${(NOMES_BARRACAS[b] || b).replace(/^.{2}\s?/, '')}</option>`
+        ).join('');
+        el.innerHTML = primeiraOpcao + barracaOpts;
+    });
 }
 
 function limparTodosDados() {
@@ -1831,6 +1876,82 @@ function carregarConfigDinamica() {
     }
     // Atualizar todos os selects existentes
     BARRACAS.forEach(b => atualizarSelectsProdutos(b));
+    // Atualizar selects de destino com barracas dinâmicas
+    atualizarSelectsDestino();
+    // Adicionar barracas dinâmicas ao menu e criar seções
+    atualizarMenuBarracas();
+}
+
+function atualizarMenuBarracas() {
+    const menu = document.querySelector('.menu-barracas');
+    if (!menu) return;
+    const barracasDefault = ['fazendinha','cachorro-quente','kafta','pernil','pastel','batata-frita','doces','bar','chopp','kids','bingo','artesanato'];
+    
+    BARRACAS.forEach(b => {
+        if (barracasDefault.includes(b)) return;
+        if (menu.querySelector(`[data-section="${b}"]`)) return;
+        
+        // Criar seção dinâmica
+        const container = document.querySelector('.container');
+        if (container && !document.getElementById('sec-' + b)) {
+            const nome = NOMES_BARRACAS[b] || b;
+            const section = document.createElement('section');
+            section.id = 'sec-' + b;
+            section.className = 'section';
+            section.innerHTML = `
+                <h2>${nome}</h2>
+                <div class="painel-madeira">
+                    <h3>Lançar Venda (preço variável)</h3>
+                    <div class="form-row">
+                        <input type="text" id="descVenda-${b}" placeholder="Descrição do item">
+                        <input type="number" id="precoVenda-${b}" placeholder="Preço R$" step="0.01" min="0">
+                        <input type="number" id="qtd-${b}" placeholder="Qtd" min="1" value="1">
+                        <button class="btn-venda" onclick="lancarVendaDinamica('${b}')">Lançar</button>
+                    </div>
+                </div>
+                <div class="tabela-box"><h4>Vendas</h4><table id="tblVendas-${b}"><thead><tr><th>Dia</th><th>Produto</th><th>Qtd</th><th>Unit.</th><th>Total</th><th></th></tr></thead><tbody></tbody></table></div>
+                <div class="resumo-barraca" id="resumo-${b}"></div>
+            `;
+            container.appendChild(section);
+        }
+        
+        // Criar botão no menu
+        const btnDespesas = menu.querySelector('[data-section="despesas"]');
+        const btn = document.createElement('button');
+        btn.className = 'menu-btn';
+        btn.dataset.section = b;
+        btn.textContent = NOMES_BARRACAS[b] || b;
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.menu-btn').forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById('sec-' + b).classList.add('active');
+        });
+        if (btnDespesas) menu.insertBefore(btn, btnDespesas);
+        else menu.appendChild(btn);
+    });
+}
+
+function lancarVendaDinamica(barraca) {
+    const descInput = document.getElementById('descVenda-' + barraca);
+    const precoInput = document.getElementById('precoVenda-' + barraca);
+    const qtdInput = document.getElementById('qtd-' + barraca);
+    const produto = descInput ? descInput.value.trim() : '';
+    const preco = precoInput ? parseFloat(precoInput.value) : 0;
+    const qtd = qtdInput ? parseInt(qtdInput.value) || 1 : 1;
+    if (!produto || isNaN(preco) || preco <= 0 || qtd < 1) return;
+
+    const dia = filtro === 'todos' ? 1 : filtro;
+    if (!dados[barraca]) dados[barraca] = { vendas: [] };
+    dados[barraca].vendas.push({
+        id: Date.now(), dia, produto, preco, qtd, total: preco * qtd
+    });
+    salvarDados(dados);
+    if (descInput) descInput.value = '';
+    if (precoInput) precoInput.value = '';
+    if (qtdInput) qtdInput.value = '1';
+    renderizarTudo();
+    registrarAcao(`Venda: ${qtd}x ${produto} → ${(NOMES_BARRACAS[barraca]||barraca).replace(/^.{2}/,'')}`);
 }
 
 carregarConfigDinamica();
