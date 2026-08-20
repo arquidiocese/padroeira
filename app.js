@@ -254,28 +254,33 @@ function renderizarItensNota() {
     if (!container) return;
 
     if (itensNotaAtual.length === 0) {
-        container.innerHTML = '';
+        container.innerHTML = '<p style="opacity:0.4;font-size:0.8rem;text-align:center;padding:8px">Adicione itens com o botão "+ Item". Eles aparecem aqui antes de salvar.</p>';
         if (totalEl) totalEl.textContent = '';
         if (btnFinalizar) btnFinalizar.style.display = 'none';
         return;
     }
 
     const total = itensNotaAtual.reduce((s, i) => s + i.valor, 0);
-    let html = '<div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;border:1px solid rgba(91,192,235,0.3)">';
-    html += '<div style="font-size:0.78rem;font-weight:700;color:var(--cor-amarelo);margin-bottom:8px">Itens da nota (' + itensNotaAtual.length + '):</div>';
+    let html = '<div style="background:rgba(0,0,0,0.25);border-radius:10px;padding:12px;border:2px solid rgba(91,192,235,0.4)">';
+    html += '<div style="font-size:0.82rem;font-weight:700;color:var(--cor-amarelo);margin-bottom:8px">📝 Itens da nota (' + itensNotaAtual.length + '):</div>';
     itensNotaAtual.forEach((item, i) => {
         const destNome = item.destino === 'geral' ? 'Geral' : (NOMES_BARRACAS[item.destino] || item.destino).replace(/^.{2}\s?/, '');
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.8rem">
-            <span style="flex:1;color:var(--cor-palha)">${item.desc} (${item.qtd} ${item.unidade})</span>
-            <span style="color:#81c784;font-weight:600;min-width:80px;text-align:right">R$ ${fmt(item.valor)}</span>
-            <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);min-width:70px">→ ${destNome}</span>
-            <button class="btn-delete" onclick="removerItemNota(${i})" style="padding:2px 6px;font-size:0.65rem">X</button>
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.82rem">
+            <span style="color:rgba(255,255,255,0.5);font-weight:700;min-width:20px">${i+1}.</span>
+            <span style="flex:1;color:var(--cor-palha)">${item.desc} <small style="opacity:0.6">(${item.qtd} ${item.unidade})</small></span>
+            <span style="color:#81c784;font-weight:700;min-width:90px;text-align:right">R$ ${fmt(item.valor)}</span>
+            <span style="font-size:0.72rem;color:rgba(91,192,235,0.8);min-width:80px;text-align:center;background:rgba(91,192,235,0.1);padding:2px 6px;border-radius:8px">→ ${destNome}</span>
+            <button class="btn-delete" onclick="removerItemNota(${i})" style="padding:2px 8px;font-size:0.7rem">X</button>
         </div>`;
     });
+    html += `<div style="margin-top:10px;padding-top:8px;border-top:2px solid rgba(91,192,235,0.3);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:0.85rem;color:rgba(255,255,255,0.6)">${itensNotaAtual.length} ${itensNotaAtual.length === 1 ? 'item' : 'itens'} na nota</span>
+        <span style="font-size:1.2rem;font-weight:800;color:#66bb6a">TOTAL: R$ ${fmt(total)}</span>
+    </div>`;
     html += '</div>';
     container.innerHTML = html;
 
-    if (totalEl) totalEl.textContent = `Total da nota: R$ ${fmt(total)} (${itensNotaAtual.length} ${itensNotaAtual.length === 1 ? 'item' : 'itens'})`;
+    if (totalEl) totalEl.textContent = '';
     if (btnFinalizar) btnFinalizar.style.display = 'inline-block';
 }
 
