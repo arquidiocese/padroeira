@@ -2394,6 +2394,14 @@ function toggleHistorico() {
     }
 }
 
+function limparHistorico() {
+    if (!confirm('Limpar todo o histórico de ações?')) return;
+    historico = [];
+    localStorage.removeItem(HISTORICO_KEY);
+    renderizarHistorico();
+    mostrarToast('Histórico limpo!');
+}
+
 // Interceptar funções para registrar no histórico
 const _lancarVendaOriginal = lancarVenda;
 lancarVenda = function(barraca) {

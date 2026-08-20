@@ -52,7 +52,10 @@
 
     <!-- PAINEL DE HISTÓRICO -->
     <div class="historico-painel" id="historicoPainel" style="display:none">
-        <h4>📋 Últimas Ações</h4>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h4 style="margin:0">📋 Últimas Ações</h4>
+            <button class="btn-delete" onclick="limparHistorico()" style="font-size:0.72rem">Limpar Histórico</button>
+        </div>
         <div id="historicoLista"></div>
     </div>
 
