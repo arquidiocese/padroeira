@@ -218,37 +218,120 @@ function lancarVendaLeilao() {
 }
 
 // ===== DESPESAS (independente de dia) =====
-function lancarDespesa() {
-    const categoria = document.getElementById('categoriaDespesa').value;
+// ===== DESPESAS - NOTA COM MÚLTIPLOS ITENS =====
+let itensNotaAtual = [];
+
+function adicionarItemNota() {
     const desc = document.getElementById('descDespesa').value.trim();
     const qtd = parseFloat(document.getElementById('qtdDespesa').value) || 1;
     const unidade = document.getElementById('unidadeDespesa').value;
     const valor = parseFloat(document.getElementById('valorDespesa').value);
-    const local = document.getElementById('localDespesa').value.trim();
-    const obs = document.getElementById('obsDespesa').value.trim();
     const destino = document.getElementById('destinoDespesa').value;
+    const obs = document.getElementById('obsDespesa').value.trim();
+
+    if (!desc || isNaN(valor) || valor <= 0) { alert('Preencha a descrição e valor do item'); return; }
+
+    itensNotaAtual.push({ desc, qtd, unidade, valor, destino, obs });
+
+    // Limpar campos do item
+    document.getElementById('descDespesa').value = '';
+    document.getElementById('qtdDespesa').value = '1';
+    document.getElementById('valorDespesa').value = '';
+    document.getElementById('obsDespesa').value = '';
+
+    renderizarItensNota();
+}
+
+function removerItemNota(index) {
+    itensNotaAtual.splice(index, 1);
+    renderizarItensNota();
+}
+
+function renderizarItensNota() {
+    const container = document.getElementById('itensNotaAtual');
+    const totalEl = document.getElementById('totalNotaAtual');
+    const btnFinalizar = document.getElementById('btnFinalizarNota');
+    if (!container) return;
+
+    if (itensNotaAtual.length === 0) {
+        container.innerHTML = '';
+        if (totalEl) totalEl.textContent = '';
+        if (btnFinalizar) btnFinalizar.style.display = 'none';
+        return;
+    }
+
+    const total = itensNotaAtual.reduce((s, i) => s + i.valor, 0);
+    let html = '<div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;border:1px solid rgba(91,192,235,0.3)">';
+    html += '<div style="font-size:0.78rem;font-weight:700;color:var(--cor-amarelo);margin-bottom:8px">Itens da nota (' + itensNotaAtual.length + '):</div>';
+    itensNotaAtual.forEach((item, i) => {
+        const destNome = item.destino === 'geral' ? 'Geral' : (NOMES_BARRACAS[item.destino] || item.destino).replace(/^.{2}\s?/, '');
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.8rem">
+            <span style="flex:1;color:var(--cor-palha)">${item.desc} (${item.qtd} ${item.unidade})</span>
+            <span style="color:#81c784;font-weight:600;min-width:80px;text-align:right">R$ ${fmt(item.valor)}</span>
+            <span style="font-size:0.7rem;color:rgba(255,255,255,0.5);min-width:70px">→ ${destNome}</span>
+            <button class="btn-delete" onclick="removerItemNota(${i})" style="padding:2px 6px;font-size:0.65rem">X</button>
+        </div>`;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    if (totalEl) totalEl.textContent = `Total da nota: R$ ${fmt(total)} (${itensNotaAtual.length} ${itensNotaAtual.length === 1 ? 'item' : 'itens'})`;
+    if (btnFinalizar) btnFinalizar.style.display = 'inline-block';
+}
+
+function finalizarNota() {
+    if (itensNotaAtual.length === 0) return;
+
+    const categoria = document.getElementById('categoriaDespesa').value;
+    const local = document.getElementById('localDespesa').value.trim();
     const doacao = document.getElementById('doacaoDespesa').checked;
     const pagarDepois = document.getElementById('pagarDespesa').checked;
     const dataVencimento = pagarDepois ? (document.getElementById('dataVencimentoDespesa').value || '') : '';
     const patrocinadorId = doacao ? (document.getElementById('patrocinadorDespesa').value || '') : '';
 
-    if (!desc || isNaN(valor) || valor <= 0) return;
-
-    dados.despesas.push({
-        id: Date.now(), categoria, desc, qtd, unidade, valor, local, obs, destino, doacao, pago: !pagarDepois, patrocinadorId, dataVencimento
+    // Lançar cada item como uma despesa separada (mesmo local/nota)
+    const notaId = Date.now();
+    itensNotaAtual.forEach((item, i) => {
+        dados.despesas.push({
+            id: notaId + i,
+            categoria,
+            desc: item.desc,
+            qtd: item.qtd,
+            unidade: item.unidade,
+            valor: item.valor,
+            local,
+            obs: item.obs,
+            destino: item.destino,
+            doacao,
+            pago: !pagarDepois,
+            patrocinadorId,
+            dataVencimento,
+            notaId: notaId // agrupa itens da mesma nota
+        });
     });
+
     salvarDados(dados);
-    document.getElementById('descDespesa').value = '';
-    document.getElementById('qtdDespesa').value = '1';
-    document.getElementById('valorDespesa').value = '';
+
+    // Limpar tudo
+    itensNotaAtual = [];
     document.getElementById('localDespesa').value = '';
-    document.getElementById('obsDespesa').value = '';
     document.getElementById('doacaoDespesa').checked = false;
     document.getElementById('pagarDespesa').checked = false;
     document.getElementById('dataVencimentoDespesa').style.display = 'none';
     document.getElementById('dataVencimentoDespesa').value = '';
     document.getElementById('patrocinadorDespesa').style.display = 'none';
+    renderizarItensNota();
     renderizarTudo();
+    registrarAcao(`Nota lançada: ${local || 'sem local'} - ${dados.despesas.length} itens`);
+}
+
+// Manter compatibilidade - lançar item único direto (usado pelo interceptor de histórico)
+function lancarDespesa() {
+    const desc = document.getElementById('descDespesa').value.trim();
+    const valor = parseFloat(document.getElementById('valorDespesa').value);
+    if (!desc || isNaN(valor) || valor <= 0) return;
+    adicionarItemNota();
+    finalizarNota();
 }
 
 function toggleDataVencimento() {

@@ -533,8 +533,12 @@
             <p class="secao-desc">Todos os custos do evento: ingredientes, infraestrutura, segurança, equipamentos, etc. Não vinculado a dia específico. Pode ser lançado antes, durante ou depois da festa.</p>
             
             <div class="painel-madeira">
-                <h3>Lançar Despesa</h3>
-                <div class="form-row">
+                <h3>Lançar Despesa (Nota/Compra)</h3>
+                <p class="secao-desc" style="margin-bottom:12px">Preencha os dados da compra e adicione os itens. Cada item pode ir para uma barraca diferente.</p>
+                
+                <!-- Dados da nota -->
+                <div class="form-row" style="background:rgba(0,0,0,0.2);padding:12px;border-radius:10px;margin-bottom:12px;">
+                    <input type="text" id="localDespesa" placeholder="Local da compra (ex: Assaí, Porecatu...)" style="flex:2">
                     <select id="categoriaDespesa">
                         <optgroup label="Alimentos e Bebidas">
                             <option value="Carnes">Carnes (pernil, linguiça, kafta...)</option>
@@ -583,28 +587,33 @@
                             <option value="Outros">Outros</option>
                         </optgroup>
                     </select>
-                    <input type="text" id="descDespesa" placeholder="Item (ex: 10kg de pernil, 500 pães, 3 botijões...)">
+                    <label class="checkbox-opt"><input type="checkbox" id="doacaoDespesa" onchange="togglePatrocinadorDespesa()"> 🎁 Doação</label>
+                    <select id="patrocinadorDespesa" style="display:none">
+                        <option value="">Selecione o patrocinador...</option>
+                    </select>
+                    <label class="checkbox-opt"><input type="checkbox" id="pagarDespesa" onchange="toggleDataVencimento()"> ⏳ Pagar depois</label>
+                    <input type="date" id="dataVencimentoDespesa" style="display:none;padding:8px 12px;border-radius:10px;border:2px solid rgba(245,222,179,0.25);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.85rem;font-family:'Nunito',sans-serif;">
                 </div>
+
+                <!-- Adicionar item à nota -->
                 <div class="form-row">
-                    <input type="number" id="qtdDespesa" placeholder="Qtd" min="1" value="1" step="1">
-                    <select id="unidadeDespesa">
-                        <option value="un">Unidade(s)</option>
+                    <input type="text" id="descDespesa" placeholder="Item (ex: 10kg de pernil, 500 pães...)" style="flex:2">
+                    <input type="number" id="qtdDespesa" placeholder="Qtd" min="1" value="1" step="1" style="width:70px;flex:0 0 70px">
+                    <select id="unidadeDespesa" style="width:90px;flex:0 0 90px">
+                        <option value="un">Un</option>
                         <option value="kg">Kg</option>
-                        <option value="g">Gramas</option>
-                        <option value="L">Litros</option>
+                        <option value="g">g</option>
+                        <option value="L">L</option>
                         <option value="ml">ml</option>
-                        <option value="cx">Caixa(s)</option>
-                        <option value="pct">Pacote(s)</option>
-                        <option value="fardo">Fardo(s)</option>
-                        <option value="dz">Dúzia(s)</option>
-                        <option value="m">Metro(s)</option>
-                        <option value="diária">Diária(s)</option>
+                        <option value="cx">Cx</option>
+                        <option value="pct">Pct</option>
+                        <option value="fardo">Fardo</option>
+                        <option value="dz">Dz</option>
+                        <option value="m">m</option>
+                        <option value="diária">Diária</option>
                         <option value="serviço">Serviço</option>
                     </select>
-                    <input type="number" id="valorDespesa" placeholder="Valor Total R$" step="0.01" min="0">
-                    <input type="text" id="localDespesa" placeholder="Local da compra (ex: Assaí, Porecatu...)">
-                </div>
-                <div class="form-row">
+                    <input type="number" id="valorDespesa" placeholder="Valor R$" step="0.01" min="0">
                     <select id="destinoDespesa">
                         <option value="geral">Geral (evento todo)</option>
                         <option value="fazendinha">Fazendinha</option>
@@ -620,14 +629,17 @@
                         <option value="bingo">Bingo / Leilão</option>
                         <option value="artesanato">Artesanato</option>
                     </select>
-                    <input type="text" id="obsDespesa" placeholder="Observação (opcional)">
-                    <label class="checkbox-opt"><input type="checkbox" id="doacaoDespesa" onchange="togglePatrocinadorDespesa()"> 🎁 Doação</label>
-                    <select id="patrocinadorDespesa" style="display:none">
-                        <option value="">Selecione o patrocinador...</option>
-                    </select>
-                    <label class="checkbox-opt"><input type="checkbox" id="pagarDespesa" onchange="toggleDataVencimento()"> ⏳ Pagar depois</label>
-                    <input type="date" id="dataVencimentoDespesa" style="display:none;padding:8px 12px;border-radius:10px;border:2px solid rgba(245,222,179,0.25);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.85rem;font-family:'Nunito',sans-serif;" placeholder="Data vencimento">
-                    <button class="btn-gasto" onclick="lancarDespesa()">Lançar Despesa</button>
+                    <input type="text" id="obsDespesa" placeholder="Obs (opcional)">
+                    <button class="btn-venda" onclick="adicionarItemNota()">+ Item</button>
+                </div>
+
+                <!-- Lista de itens da nota atual -->
+                <div id="itensNotaAtual" style="margin-top:10px"></div>
+
+                <!-- Botão finalizar nota -->
+                <div class="form-row" style="margin-top:12px;justify-content:space-between">
+                    <span id="totalNotaAtual" style="font-size:1rem;font-weight:700;color:#66bb6a"></span>
+                    <button class="btn-gasto" onclick="finalizarNota()" id="btnFinalizarNota" style="display:none">Lançar Nota Completa</button>
                 </div>
             </div>
 
