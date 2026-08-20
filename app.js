@@ -56,7 +56,7 @@ let filtro = 'todos';
 let filtroDespesa = 'todos';
 
 function dadosVazios() {
-    const d = { despesas: [], patrocinadores: [], meta: 0, configBarracas: null, configProdutos: null };
+    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], meta: 0, configBarracas: null, configProdutos: null };
     BARRACAS.forEach(b => { d[b] = { vendas: [] }; });
     return d;
 }
@@ -97,6 +97,14 @@ function normalizarDados(d) {
     // Normalizar doadores
     if (d.doadores && !Array.isArray(d.doadores)) d.doadores = Object.values(d.doadores);
     if (!d.doadores) d.doadores = [];
+
+    // Normalizar necessidades
+    if (d.necessidades && !Array.isArray(d.necessidades)) d.necessidades = Object.values(d.necessidades);
+    if (!d.necessidades) d.necessidades = [];
+
+    // Normalizar doações de entrada (dinheiro)
+    if (d.doacoesEntrada && !Array.isArray(d.doacoesEntrada)) d.doacoesEntrada = Object.values(d.doacoesEntrada);
+    if (!d.doacoesEntrada) d.doacoesEntrada = [];
 
     return d;
 }
@@ -672,14 +680,15 @@ function atualizarResumoGeral() {
     const totalPatrocinadores = dados.patrocinadores.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s, p) => s + p.valor, 0);
     const totalDespesasCompra = dados.despesas.filter(d => !d.doacao).reduce((s, d) => s + d.valor, 0);
     const totalDoacoes = dados.despesas.filter(d => d.doacao).reduce((s, d) => s + d.valor, 0);
+    const totalDoacoesEntrada = (dados.doacoesEntrada || []).reduce((s, d) => s + d.valor, 0);
 
-    const receita = totalVendas + totalPatrocinadores;
+    const receita = totalVendas + totalPatrocinadores + totalDoacoesEntrada;
     const saldo = receita - totalDespesasCompra;
 
     document.getElementById('receitaTotal').textContent = R$(receita);
-    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patrocínios: ${R$(totalPatrocinadores)}`;
+    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patrocínios: ${R$(totalPatrocinadores)} | Doações: ${R$(totalDoacoesEntrada)}`;
     document.getElementById('gastoTotal').textContent = R$(totalDespesasCompra);
-    document.getElementById('gastoDetalhe').textContent = `Doações recebidas: ${R$(totalDoacoes)} (não conta como gasto)`;
+    document.getElementById('gastoDetalhe').textContent = `Doações em produtos: ${R$(totalDoacoes)} (não conta como gasto)`;
 
     const saldoEl = document.getElementById('saldoFinal');
     saldoEl.textContent = R$(saldo);
@@ -979,6 +988,7 @@ function renderizarTudo() {
     renderizarUltimosGastos();
     renderizarDoadores();
     renderizarNecessidades();
+    renderizarDoacoesEntrada();
 }
 
 // ===== MODAL DE EDIÇÃO =====
@@ -2257,6 +2267,79 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+
+// ===== DOAÇÕES DE ENTRADA (DINHEIRO) =====
+function lancarDoacaoEntrada() {
+    const nome = document.getElementById('doacaoNome').value.trim();
+    const valor = parseFloat(document.getElementById('doacaoValor').value);
+    const tipo = document.getElementById('doacaoTipo').value;
+    const data = document.getElementById('doacaoData').value || '';
+    const obs = document.getElementById('doacaoObs').value.trim();
+    const recebido = document.getElementById('doacaoRecebido').checked;
+    if (!nome || isNaN(valor) || valor <= 0) { alert('Preencha o nome e valor da doação'); return; }
+
+    if (!dados.doacoesEntrada) dados.doacoesEntrada = [];
+    dados.doacoesEntrada.push({ id: Date.now(), nome, valor, tipo, data, obs, recebido });
+    salvarDados(dados);
+    document.getElementById('doacaoNome').value = '';
+    document.getElementById('doacaoValor').value = '';
+    document.getElementById('doacaoObs').value = '';
+    renderizarDoacoesEntrada();
+    renderizarTudo();
+    registrarAcao(`Doação: ${nome} R$ ${fmt(valor)}`);
+}
+
+function removerDoacaoEntrada(id) {
+    if (!dados.doacoesEntrada) return;
+    dados.doacoesEntrada = dados.doacoesEntrada.filter(d => d.id !== id);
+    salvarDados(dados);
+    renderizarDoacoesEntrada();
+    renderizarTudo();
+}
+
+function toggleDoacaoRecebida(id) {
+    if (!dados.doacoesEntrada) return;
+    const item = dados.doacoesEntrada.find(d => d.id === id);
+    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarDoacoesEntrada(); renderizarTudo(); }
+}
+
+function renderizarDoacoesEntrada() {
+    if (!dados.doacoesEntrada) dados.doacoesEntrada = [];
+    const tbody = document.querySelector('#tabelaDoacoesEntrada tbody');
+    if (!tbody) return;
+
+    const TIPOS = { pessoa: '👤 Pessoa', empresa: '🏢 Empresa', saldo: '📦 Saldo Anterior', outro: '📌 Outro' };
+    const lista = [...dados.doacoesEntrada].sort((a, b) => a.nome.localeCompare(b.nome));
+
+    tbody.innerHTML = lista.map(d => {
+        const dataFmt = d.data ? d.data.split('-').reverse().join('/') : '-';
+        return `<tr>
+            <td style="font-weight:700">${d.nome}</td>
+            <td><span class="badge-categoria">${TIPOS[d.tipo] || d.tipo}</span></td>
+            <td style="color:#66bb6a;font-weight:700">R$ ${fmt(d.valor)}</td>
+            <td>${dataFmt}</td>
+            <td>${d.obs || '-'}</td>
+            <td><span class="${d.recebido ? 'badge-pago' : 'badge-pendente'}" onclick="toggleDoacaoRecebida(${d.id})">${d.recebido ? 'Recebido' : 'Pendente'}</span></td>
+            <td><button class="btn-delete" onclick="confirmarExclusao('Remover esta doação?', () => removerDoacaoEntrada(${d.id}))">X</button></td>
+        </tr>`;
+    }).join('');
+
+    // Resumo
+    const total = dados.doacoesEntrada.reduce((s, d) => s + d.valor, 0);
+    const recebido = dados.doacoesEntrada.filter(d => d.recebido).reduce((s, d) => s + d.valor, 0);
+    const pendente = total - recebido;
+    const qtd = dados.doacoesEntrada.length;
+
+    const resumoEl = document.getElementById('resumoDoacoesEntrada');
+    if (resumoEl) {
+        resumoEl.innerHTML = `
+            <div class="item positivo"><span>Total Doações</span><strong>${R$(total)}</strong></div>
+            <div class="item positivo"><span>Recebido</span><strong>${R$(recebido)}</strong></div>
+            <div class="item negativo"><span>Pendente</span><strong>${R$(pendente)}</strong></div>
+            <div class="item neutro"><span>Doadores</span><strong>${qtd}</strong></div>
+        `;
+    }
+}
 
 // ===== ITENS NECESSÁRIOS POR BARRACA =====
 function adicionarNecessidade() {

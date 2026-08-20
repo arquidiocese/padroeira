@@ -116,9 +116,10 @@
         <button class="menu-btn" data-section="kafta">🥙 Kafta</button>
         <button class="menu-btn" data-section="pernil">🥪 Pernil</button>
         <button class="menu-btn" data-section="pastel">🥟 Pastel</button>
+        <button class="menu-btn" data-section="doacoes">💚 Doações</button>
         <button class="menu-btn" data-section="despesas">💰 Despesas</button>
         <button class="menu-btn" data-section="patrocinadores">🤝 Patrocinadores</button>
-        <button class="menu-btn" data-section="doadores">🎁 Doadores</button>
+        <button class="menu-btn" data-section="doadores">🎯 Bingo/Leilão</button>
         <button class="menu-btn" data-section="necessidades">📋 Necessidades</button>
         <button class="menu-btn" data-section="config">⚙️ Config</button>
     </nav>
@@ -487,6 +488,40 @@
             <div class="resumo-barraca" id="resumo-artesanato"></div>
         </section>
 
+        <!-- DOAÇÕES DE ENTRADA (dinheiro) -->
+        <section id="sec-doacoes" class="section">
+            <h2>💚 Doações em Dinheiro</h2>
+            <p class="secao-desc">Doações em dinheiro recebidas de pessoas, empresas, ou saldos de eventos anteriores. Esses valores entram como receita do evento.</p>
+
+            <div class="painel-madeira">
+                <h3>Lançar Doação</h3>
+                <div class="form-row">
+                    <input type="text" id="doacaoNome" placeholder="Nome do doador (pessoa/empresa/origem)">
+                    <input type="number" id="doacaoValor" placeholder="Valor R$" step="0.01" min="0">
+                </div>
+                <div class="form-row">
+                    <select id="doacaoTipo">
+                        <option value="pessoa">👤 Pessoa Física</option>
+                        <option value="empresa">🏢 Empresa</option>
+                        <option value="saldo">📦 Saldo Anterior</option>
+                        <option value="outro">📌 Outro</option>
+                    </select>
+                    <input type="date" id="doacaoData">
+                    <input type="text" id="doacaoObs" placeholder="Observação (opcional)">
+                    <label class="checkbox-opt"><input type="checkbox" id="doacaoRecebido" checked> Já recebido</label>
+                    <button class="btn-venda" onclick="lancarDoacaoEntrada()">Lançar</button>
+                </div>
+            </div>
+
+            <div class="tabela-box">
+                <table id="tabelaDoacoesEntrada">
+                    <thead><tr><th>Doador</th><th>Tipo</th><th>Valor</th><th>Data</th><th>Obs</th><th>Status</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="resumo-barraca" id="resumoDoacoesEntrada"></div>
+        </section>
+
         <!-- DESPESAS (sem vínculo a dia) -->
         <section id="sec-despesas" class="section">
             <h2>💰 Despesas Gerais</h2>
@@ -681,8 +716,8 @@
 
         <!-- DOADORES (bingo/leilão) -->
         <section id="sec-doadores" class="section">
-            <h2>🎁 Doadores - Bingo e Leilão</h2>
-            <p class="secao-desc">Empresas e pessoas que doaram itens/prêmios para o bingo e leilão. Não são patrocinadores financeiros, mas contribuíram com produtos para a festa. Serão listados no relatório como agradecimento.</p>
+            <h2>🎯 Bingo e Leilão - Doações de Prêmios</h2>
+            <p class="secao-desc">Empresas e pessoas que doaram itens/prêmios para o bingo e leilão. Serão listados no relatório como agradecimento.</p>
 
             <div class="painel-madeira">
                 <h3>Cadastrar Doação</h3>
