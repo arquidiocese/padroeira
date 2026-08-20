@@ -2110,12 +2110,16 @@ function atualizarSelectsDestino() {
 }
 
 function limparTodosDados() {
-    if (!confirm('ATENÇÃO: Isso vai apagar TODOS os dados (vendas, despesas, patrocinadores). Tem certeza?')) return;
+    if (!confirm('ATENÇÃO: Isso vai apagar TODOS os dados (vendas, despesas, patrocinadores, doações, necessidades, histórico). Tem certeza?')) return;
     if (!confirm('Última chance! Realmente quer apagar tudo?')) return;
     dados = dadosVazios();
     salvarDados(dados);
+    // Limpar histórico também
+    historico = [];
+    localStorage.removeItem(HISTORICO_KEY);
     renderizarTudo();
-    alert('Dados limpos com sucesso!');
+    renderizarHistorico();
+    alert('Dados limpos com sucesso! Tudo zerado para começar do zero.');
 }
 
 // Carregar config dinâmica ao iniciar
