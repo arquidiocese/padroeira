@@ -25,6 +25,7 @@
     </div>
 
     <header class="header">
+        <img src="" alt="" class="header-logo" id="headerLogo" style="display:none">
         <h1>FESTA DA PADROEIRA</h1>
         <p>Controle Financeiro - Edição 2026</p>
         <p class="header-datas">09, 10, 11 e 12 de Outubro</p>
@@ -143,7 +144,7 @@
                 </div>
                 <div class="form-row">
                     <input type="number" id="caixaValor" placeholder="Valor R$" step="0.01" min="0">
-                    <select id="caixaDestino">
+                    <select id="caixaDestino" onchange="autoCategoriaGastoRapido()">
                         <option value="geral">Geral (estrutura)</option>
                         <option value="fazendinha">Fazendinha</option>
                         <option value="cachorro-quente">Cachorro Quente</option>
@@ -648,6 +649,7 @@
             <!-- Filtros da tabela -->
             <div class="filtros-despesa">
                 <button class="filtro-btn active" data-filtro="todos" onclick="filtrarDespesas('todos')">Todos</button>
+                <button class="filtro-btn" data-filtro="hoje" onclick="filtrarDespesas('hoje')">📅 Hoje</button>
                 <button class="filtro-btn" data-filtro="alimentos" onclick="filtrarDespesas('alimentos')">🥩 Alimentos</button>
                 <button class="filtro-btn" data-filtro="infraestrutura" onclick="filtrarDespesas('infraestrutura')">🏗️ Infraestrutura</button>
                 <button class="filtro-btn" data-filtro="equipamentos" onclick="filtrarDespesas('equipamentos')">⚙️ Equipamentos</button>
@@ -812,6 +814,14 @@
                 <div class="form-row">
                     <input type="text" id="cfgNomeEvento" placeholder="Nome do Evento (ex: Arraiá da Basílica)">
                     <input type="text" id="cfgEdicao" placeholder="Edição (ex: 2026)">
+                </div>
+                <div class="form-row">
+                    <label class="checkbox-opt" style="padding:10px 16px;cursor:pointer;background:rgba(91,192,235,0.15);border:1px solid rgba(91,192,235,0.4)">
+                        🖼️ Carregar Logo
+                        <input type="file" id="cfgLogo" accept="image/*" onchange="carregarLogo(event)" hidden>
+                    </label>
+                    <span id="cfgLogoStatus" style="font-size:0.8rem;opacity:0.6"></span>
+                    <button class="btn-delete" onclick="removerLogo()" style="display:none" id="btnRemoverLogo">Remover Logo</button>
                 </div>
                 <div class="form-row">
                     <input type="text" id="cfgDatas" placeholder="Datas (ex: 10 e 11 de Julho | 17 e 18 de Julho)">

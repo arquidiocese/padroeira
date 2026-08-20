@@ -34,6 +34,17 @@ function R$(valor) {
     return 'R$ ' + fmt(valor);
 }
 
+// Toast global de feedback
+function mostrarToast(msg, tipo) {
+    const existing = document.querySelector('.toast-global');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast-global' + (tipo === 'error' ? ' error' : '');
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+}
+
 // Produtos por barraca (para caixa rápido)
 const PRODUTOS_BARRACA = {
     'fazendinha': [{nome:'Chocolate Quente',preco:15},{nome:'Curau',preco:15},{nome:'Milho Cozido',preco:10},{nome:'Pamonha',preco:20},{nome:'Pipoca',preco:5},{nome:'Quentão',preco:12},{nome:'Vinho Quente',preco:17}],
@@ -296,6 +307,8 @@ function finalizarNota() {
 
     // Lançar cada item como uma despesa separada (mesmo local/nota)
     const notaId = Date.now();
+    const notaItensCount = itensNotaAtual.length;
+    const notaTotal = itensNotaAtual.reduce((s, i) => s + i.valor, 0);
     itensNotaAtual.forEach((item, i) => {
         dados.despesas.push({
             id: notaId + i,
@@ -327,7 +340,8 @@ function finalizarNota() {
     document.getElementById('patrocinadorDespesa').style.display = 'none';
     renderizarItensNota();
     renderizarTudo();
-    registrarAcao(`Nota lançada: ${local || 'sem local'} - ${dados.despesas.length} itens`);
+    mostrarToast(`✅ Nota lançada! ${notaItensCount} ${notaItensCount === 1 ? 'item' : 'itens'} - ${R$(notaTotal)}`);
+    registrarAcao(`Nota lançada: ${local || 'sem local'} - ${notaItensCount} itens`);
 }
 
 // Manter compatibilidade - lançar item único direto (usado pelo interceptor de histórico)
@@ -384,6 +398,13 @@ function renderizarDespesas() {
         lista = lista.filter(d => d.doacao);
     } else if (filtroDespesa === 'pendente') {
         lista = lista.filter(d => !d.pago);
+    } else if (filtroDespesa === 'hoje') {
+        const hoje = new Date().toISOString().split('T')[0];
+        lista = lista.filter(d => {
+            // Filtrar por ID (timestamp do dia) já que não tem campo "data de lançamento"
+            const dataLanc = new Date(d.id).toISOString().split('T')[0];
+            return dataLanc === hoje;
+        });
     } else if (filtroDespesa !== 'todos') {
         const grupo = FILTRO_GRUPOS[filtroDespesa];
         if (grupo) {
@@ -1223,6 +1244,21 @@ function toggleCaixaPatrocinador() {
     }
 }
 
+// Auto-selecionar categoria com base no destino
+function autoCategoriaGastoRapido() {
+    const destino = document.getElementById('caixaDestino').value;
+    const catSelect = document.getElementById('caixaCategoria');
+    if (!catSelect) return;
+    const mapa = {
+        'bar': 'Bebidas (compra)', 'chopp': 'Bebidas (compra)',
+        'cachorro-quente': 'Carnes', 'kafta': 'Carnes', 'pernil': 'Carnes',
+        'pastel': 'Óleos e Gorduras', 'batata-frita': 'Óleos e Gorduras',
+        'doces': 'Doces e Ingredientes', 'fazendinha': 'Outros Alimentos',
+        'kids': 'Outros', 'bingo': 'Outros', 'artesanato': 'Outros'
+    };
+    if (mapa[destino]) catSelect.value = mapa[destino];
+}
+
 function gastoRapido() {
     const desc = document.getElementById('caixaDesc').value.trim();
     const valor = parseFloat(document.getElementById('caixaValor').value);
@@ -1762,9 +1798,70 @@ function gerarPDFComLogo(logoBase64) {
         y += 15;
     }
 
+    // ===== DOAÇÕES EM DINHEIRO =====
+    const doacoesEntradaPDF = dados.doacoesEntrada || [];
+    if (doacoesEntradaPDF.length > 0) {
+        checkPage(30);
+        titulo('DOAÇÕES EM DINHEIRO');
+        const TIPOS_DOACAO = { pessoa: 'Pessoa Física', empresa: 'Empresa', saldo: 'Saldo Anterior', outro: 'Outro' };
+        doc.autoTable({
+            startY: y, theme: 'grid',
+            headStyles: { fillColor: [46, 125, 50] },
+            head: [['Doador', 'Tipo', 'Valor', 'Data', 'Status']],
+            body: doacoesEntradaPDF.map(d => [
+                d.nome,
+                TIPOS_DOACAO[d.tipo] || d.tipo,
+                'R$ ' + fmt(d.valor),
+                d.data ? d.data.split('-').reverse().join('/') : '-',
+                d.recebido ? 'Recebido' : 'Pendente'
+            ])
+        });
+        y = doc.lastAutoTable.finalY + 5;
+        const totalDoaEnt = doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0);
+        doc.setFontSize(9);
+        doc.text(`Total em doações: R$ ${fmt(totalDoaEnt)} | ${doacoesEntradaPDF.length} doadores`, 14, y);
+        y += 15;
+    }
+
+    // ===== ITENS NECESSÁRIOS =====
+    const necessidadesPDF = dados.necessidades || [];
+    if (necessidadesPDF.length > 0) {
+        checkPage(30);
+        titulo('ITENS NECESSÁRIOS');
+        const conseguidos = necessidadesPDF.filter(n => n.conseguido).length;
+        doc.setFontSize(9);
+        doc.text(`Total: ${necessidadesPDF.length} itens | Conseguidos: ${conseguidos} | Pendentes: ${necessidadesPDF.length - conseguidos}`, 14, y);
+        y += 8;
+
+        // Agrupar por barraca
+        const necAgrup = {};
+        necessidadesPDF.forEach(n => {
+            const key = n.barraca || 'geral';
+            if (!necAgrup[key]) necAgrup[key] = [];
+            necAgrup[key].push(n);
+        });
+        const necKeys = Object.keys(necAgrup).sort((a,b) => {
+            if (a === 'geral') return -1; if (b === 'geral') return 1;
+            return (NOMES_BARRACAS[a]||a).localeCompare(NOMES_BARRACAS[b]||b);
+        });
+        necKeys.forEach(key => {
+            const nome = key === 'geral' ? 'Geral (Infraestrutura)' : (NOMES_BARRACAS[key]||key).replace(/^.{2}\s?/,'');
+            const itens = necAgrup[key];
+            if (y + 15 > 270) { doc.addPage(); y = 20; }
+            doc.autoTable({
+                startY: y, theme: 'striped',
+                headStyles: { fillColor: [91, 192, 235] },
+                head: [[nome, 'Qtd', 'Obs', 'Status']],
+                body: itens.map(n => [n.item, `${n.qtd} ${n.unidade}`, n.obs || '-', n.conseguido ? 'Conseguido' : 'PENDENTE'])
+            });
+            y = doc.lastAutoTable.finalY + 5;
+        });
+        y += 10;
+    }
+
     // ===== RESULTADO FINAL =====
     checkPage(40);
-    const secFinal = (doacoesPDF.length > 0 ? 10 : 9) + ((dados.doadores||[]).length > 0 ? 1 : 0);
+    const secFinal = (doacoesPDF.length > 0 ? 10 : 9) + ((dados.doadores||[]).length > 0 ? 1 : 0) + (doacoesEntradaPDF.length > 0 ? 1 : 0) + (necessidadesPDF.length > 0 ? 1 : 0);
     titulo(secFinal + '. RESULTADO FINAL');
     doc.autoTable({
         startY: y, theme: 'grid',
@@ -1773,14 +1870,16 @@ function gerarPDFComLogo(logoBase64) {
         body: [
             ['(+) Vendas nas barracas', 'R$ ' + fmt(totalVendas)],
             ['(+) Patrocínios em dinheiro', 'R$ ' + fmt(patrDinheiro)],
-            ['(=) RECEITA TOTAL', 'R$ ' + fmt(receita)],
+            ['(+) Doações em dinheiro', 'R$ ' + fmt(doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
+            ['(=) RECEITA TOTAL', 'R$ ' + fmt(receita + doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
             ['(-) Despesas (compras)', 'R$ ' + fmt(despCompras)],
-            ['(=) SALDO LÍQUIDO', 'R$ ' + fmt(saldo)],
+            ['(=) SALDO LÍQUIDO', 'R$ ' + fmt(saldo + doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
             ['', ''],
             ['Itens vendidos no total', totalItens.toString()],
             ['Barracas ativas', BARRACAS.filter(b => dados[b] && dados[b].vendas.length > 0).length.toString()],
             ['Patrocinadores', (dados.patrocinadores||[]).length.toString()],
-            ['Economia com doações', 'R$ ' + fmt(despDoacoes)]
+            ['Doadores (dinheiro)', doacoesEntradaPDF.length.toString()],
+            ['Economia com doações em produtos', 'R$ ' + fmt(despDoacoes)]
         ]
     });
 
@@ -2121,6 +2220,7 @@ function lancarVendaDinamica(barraca) {
     if (precoInput) precoInput.value = '';
     if (qtdInput) qtdInput.value = '1';
     renderizarTudo();
+    mostrarToast(`✅ ${qtd}x ${produto} lançado!`);
     registrarAcao(`Venda: ${qtd}x ${produto} → ${(NOMES_BARRACAS[barraca]||barraca).replace(/^.{2}/,'')}`);
 }
 
@@ -2181,7 +2281,49 @@ function getConfigEvento() {
     };
 }
 
+function carregarLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 500000) { alert('Imagem muito grande. Use uma imagem menor que 500KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        if (!dados.configEvento) dados.configEvento = {};
+        dados.configEvento.logo = e.target.result;
+        salvarDados(dados);
+        exibirLogo();
+        mostrarToast('✅ Logo carregado!');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removerLogo() {
+    if (!dados.configEvento) return;
+    delete dados.configEvento.logo;
+    salvarDados(dados);
+    exibirLogo();
+    mostrarToast('Logo removido');
+}
+
+function exibirLogo() {
+    const img = document.getElementById('headerLogo');
+    const status = document.getElementById('cfgLogoStatus');
+    const btnRemover = document.getElementById('btnRemoverLogo');
+    const logo = dados.configEvento && dados.configEvento.logo;
+    if (img) {
+        if (logo) {
+            img.src = logo;
+            img.style.display = 'block';
+        } else {
+            img.style.display = 'none';
+            img.src = '';
+        }
+    }
+    if (status) status.textContent = logo ? 'Logo carregado' : 'Nenhum logo definido';
+    if (btnRemover) btnRemover.style.display = logo ? 'inline-block' : 'none';
+}
+
 carregarConfigEvento();
+exibirLogo();
 
 // ===== FIREBASE STATUS =====
 let firebaseOnline = false;
@@ -2256,6 +2398,7 @@ lancarVenda = function(barraca) {
     const produto = select ? select.value : '';
     const q = qtd ? qtd.value : 1;
     _lancarVendaOriginal(barraca);
+    mostrarToast(`✅ ${q}x ${produto} lançado!`);
     registrarAcao(`Venda: ${q}x ${produto} → ${(NOMES_BARRACAS[barraca]||barraca).replace(/^.{2}/,'')}`);
 };
 
@@ -2372,6 +2515,7 @@ function lancarDoacaoEntrada() {
     document.getElementById('doacaoObs').value = '';
     renderizarDoacoesEntrada();
     renderizarTudo();
+    mostrarToast(`✅ Doação de ${nome} - ${R$(valor)} lançada!`);
     registrarAcao(`Doação: ${nome} R$ ${fmt(valor)}`);
 }
 
