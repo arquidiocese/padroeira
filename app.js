@@ -1964,7 +1964,7 @@ function carregarConfigDinamica() {
 }
 
 function atualizarMenuBarracas() {
-    const menu = document.querySelector('.menu-barracas');
+    const menu = document.querySelector('.menu-barracas-vendas');
     if (!menu) return;
     const barracasDefault = ['fazendinha','cachorro-quente','kafta','pernil','pastel','batata-frita','doces','bar','chopp','kids','bingo','artesanato'];
     
@@ -1997,7 +1997,6 @@ function atualizarMenuBarracas() {
         }
         
         // Criar botão no menu
-        const btnDespesas = menu.querySelector('[data-section="despesas"]');
         const btn = document.createElement('button');
         btn.className = 'menu-btn';
         btn.dataset.section = b;
@@ -2011,8 +2010,7 @@ function atualizarMenuBarracas() {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById('sec-' + b).classList.add('active');
         });
-        if (btnDespesas) menu.insertBefore(btn, btnDespesas);
-        else menu.appendChild(btn);
+        menu.appendChild(btn);
     });
 }
 
