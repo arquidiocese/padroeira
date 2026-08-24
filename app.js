@@ -2541,6 +2541,24 @@ function cadastrarCaixa() {
 
     if (dias.length === 0) { alert('Selecione pelo menos um dia'); return; }
 
+    // Validar limite por dia
+    if (!dados.configCaixas) dados.configCaixas = { fixos: 0, volantes: 0 };
+    const limite = tipo === 'fixo' ? (dados.configCaixas.fixos || 0) : (dados.configCaixas.volantes || 0);
+    
+    if (limite > 0) {
+        const diasLotados = [];
+        dias.forEach(dia => {
+            const jaCadastrados = (dados.caixas || []).filter(c => c.tipo === tipo && c.dias.includes(dia)).length;
+            if (jaCadastrados >= limite) {
+                diasLotados.push(DIAS_CAIXAS[dia].split(' ')[0]);
+            }
+        });
+        if (diasLotados.length > 0) {
+            alert(`Limite de caixas ${tipo === 'fixo' ? 'fixos' : 'volantes'} atingido nos dias: ${diasLotados.join(', ')}.\n\nMáximo configurado: ${limite} por dia.\n\nRemova alguém ou aumente o limite em Config.`);
+            return;
+        }
+    }
+
     if (!dados.caixas) dados.caixas = [];
     dados.caixas.push({ id: Date.now(), nome, telefone, tipo, dias });
     salvarDados(dados);
@@ -2594,14 +2612,37 @@ salvarEdicao = function() {
     if (edicaoAtual && edicaoAtual.tipo === 'caixa') {
         const item = (dados.caixas || []).find(c => c.id === edicaoAtual.id);
         if (item) {
-            item.nome = document.getElementById('editNome').value.trim() || item.nome;
-            item.telefone = document.getElementById('editTelefone').value.trim();
-            item.tipo = document.getElementById('editTipoCaixa').value;
-            item.dias = [];
-            if (document.getElementById('editCaixaDia1').checked) item.dias.push(1);
-            if (document.getElementById('editCaixaDia2').checked) item.dias.push(2);
-            if (document.getElementById('editCaixaDia3').checked) item.dias.push(3);
-            if (document.getElementById('editCaixaDia4').checked) item.dias.push(4);
+            const novoNome = document.getElementById('editNome').value.trim() || item.nome;
+            const novoTelefone = document.getElementById('editTelefone').value.trim();
+            const novoTipo = document.getElementById('editTipoCaixa').value;
+            const novosDias = [];
+            if (document.getElementById('editCaixaDia1').checked) novosDias.push(1);
+            if (document.getElementById('editCaixaDia2').checked) novosDias.push(2);
+            if (document.getElementById('editCaixaDia3').checked) novosDias.push(3);
+            if (document.getElementById('editCaixaDia4').checked) novosDias.push(4);
+
+            // Validar limite nos novos dias
+            if (!dados.configCaixas) dados.configCaixas = { fixos: 0, volantes: 0 };
+            const limite = novoTipo === 'fixo' ? (dados.configCaixas.fixos || 0) : (dados.configCaixas.volantes || 0);
+            if (limite > 0) {
+                const diasLotados = [];
+                novosDias.forEach(dia => {
+                    // Contar excluindo a própria pessoa
+                    const jaCadastrados = (dados.caixas || []).filter(c => c.id !== item.id && c.tipo === novoTipo && c.dias.includes(dia)).length;
+                    if (jaCadastrados >= limite) {
+                        diasLotados.push(DIAS_CAIXAS[dia].split(' ')[0]);
+                    }
+                });
+                if (diasLotados.length > 0) {
+                    alert(`Limite de caixas ${novoTipo === 'fixo' ? 'fixos' : 'volantes'} atingido nos dias: ${diasLotados.join(', ')}.\n\nMáximo: ${limite} por dia.`);
+                    return;
+                }
+            }
+
+            item.nome = novoNome;
+            item.telefone = novoTelefone;
+            item.tipo = novoTipo;
+            item.dias = novosDias;
         }
         salvarDados(dados);
         fecharModal();
@@ -2639,47 +2680,59 @@ function renderizarCaixas() {
         `;
     }
 
-    // Visualização por dia
+    // Visualização por dia - formato escala
     const porDiaEl = document.getElementById('caixasPorDia');
     if (porDiaEl) {
-        let html = '<div class="dashboard-grid">';
-        [1,2,3,4].forEach(dia => {
-            const doDia = dados.caixas.filter(c => c.dias.includes(dia));
-            const fixos = doDia.filter(c => c.tipo === 'fixo');
-            const volantes = doDia.filter(c => c.tipo === 'volante');
-            const faltamFixos = Math.max(0, totalFixos - fixos.length);
-            const faltamVolantes = Math.max(0, totalVolantes - volantes.length);
-
-            html += `<div class="dash-card">
-                <h4>📅 ${DIAS_CAIXAS[dia]}</h4>
-                <div style="font-size:0.82rem;margin-bottom:8px;color:rgba(255,255,255,0.6)">${doDia.length} pessoas escaladas</div>`;
-
-            if (fixos.length > 0) {
-                html += '<div style="margin-bottom:6px"><span style="font-size:0.72rem;font-weight:700;color:var(--cor-amarelo)">FIXOS:</span>';
-                fixos.forEach(c => {
-                    html += `<div style="font-size:0.8rem;color:var(--cor-palha);padding:2px 0">• ${c.nome}${c.telefone ? ' <small style="opacity:0.5">'+c.telefone+'</small>' : ''}</div>`;
-                });
-                html += '</div>';
-            }
-            if (volantes.length > 0) {
-                html += '<div style="margin-bottom:6px"><span style="font-size:0.72rem;font-weight:700;color:#81c784">VOLANTES:</span>';
-                volantes.forEach(c => {
-                    html += `<div style="font-size:0.8rem;color:var(--cor-palha);padding:2px 0">• ${c.nome}${c.telefone ? ' <small style="opacity:0.5">'+c.telefone+'</small>' : ''}</div>`;
-                });
-                html += '</div>';
-            }
-            if (doDia.length === 0) {
-                html += '<div style="font-size:0.8rem;opacity:0.4;padding:8px 0">Nenhum caixa escalado</div>';
-            }
-            if (faltamFixos > 0 || faltamVolantes > 0) {
-                html += `<div style="font-size:0.75rem;color:#ef5350;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">`;
-                if (faltamFixos > 0) html += `Faltam ${faltamFixos} fixo(s) `;
-                if (faltamVolantes > 0) html += `Faltam ${faltamVolantes} volante(s)`;
-                html += '</div>';
-            }
-            html += '</div>';
+        // Montar dados por dia
+        const escalaDias = [1,2,3,4].map(dia => {
+            const fixos = dados.caixas.filter(c => c.tipo === 'fixo' && c.dias.includes(dia)).sort((a,b) => a.nome.localeCompare(b.nome));
+            const volantes = dados.caixas.filter(c => c.tipo === 'volante' && c.dias.includes(dia)).sort((a,b) => a.nome.localeCompare(b.nome));
+            return { dia, fixos, volantes };
         });
-        html += '</div>';
+
+        const maxFixos = Math.max(...escalaDias.map(d => d.fixos.length), 1);
+        const maxVolantes = Math.max(...escalaDias.map(d => d.volantes.length), 1);
+
+        let html = '<div class="tabela-box" style="overflow-x:auto"><h4 style="text-align:center;font-size:1.1rem">ESCALA DE CAIXAS - FESTA DA PADROEIRA 2026</h4>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.82rem">';
+        
+        // Cabeçalho dos dias
+        html += '<thead><tr style="background:rgba(91,192,235,0.2)">';
+        html += '<th style="width:30px;padding:8px;border:1px solid rgba(255,255,255,0.15)"></th>';
+        [1,2,3,4].forEach(dia => {
+            html += `<th style="padding:8px;text-align:center;border:1px solid rgba(255,255,255,0.15);color:var(--cor-amarelo)">${DIAS_CAIXAS[dia]}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // Linha "Caixa Fixo" (título)
+        html += '<tr style="background:rgba(212,160,23,0.15)"><td style="padding:6px;border:1px solid rgba(255,255,255,0.1);font-weight:700;text-align:center" colspan="5">Caixa Fixo</td></tr>';
+
+        // Linhas de fixos
+        for (let i = 0; i < maxFixos; i++) {
+            html += '<tr>';
+            html += `<td style="padding:4px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;color:var(--cor-amarelo);font-weight:700;font-size:0.75rem">${i+1}</td>`;
+            [1,2,3,4].forEach((dia, di) => {
+                const pessoa = escalaDias[di].fixos[i];
+                html += `<td style="padding:4px 8px;border:1px solid rgba(255,255,255,0.08);color:var(--cor-palha)">${pessoa ? pessoa.nome : ''}</td>`;
+            });
+            html += '</tr>';
+        }
+
+        // Linha "Caixa Volante" (título)
+        html += '<tr style="background:rgba(129,199,132,0.15)"><td style="padding:6px;border:1px solid rgba(255,255,255,0.1);font-weight:700;text-align:center" colspan="5">Caixa Volante</td></tr>';
+
+        // Linhas de volantes (numeração continua)
+        for (let i = 0; i < maxVolantes; i++) {
+            html += '<tr>';
+            html += `<td style="padding:4px 8px;border:1px solid rgba(255,255,255,0.08);text-align:center;color:#81c784;font-weight:700;font-size:0.75rem">${maxFixos + i + 1}</td>`;
+            [1,2,3,4].forEach((dia, di) => {
+                const pessoa = escalaDias[di].volantes[i];
+                html += `<td style="padding:4px 8px;border:1px solid rgba(255,255,255,0.08);color:var(--cor-palha)">${pessoa ? pessoa.nome : ''}</td>`;
+            });
+            html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
         porDiaEl.innerHTML = html;
     }
 
@@ -2704,6 +2757,84 @@ function renderizarCaixas() {
             </tr>`;
         }).join('');
     }
+}
+
+function exportarEscalaPDF() {
+    if (!dados.caixas || dados.caixas.length === 0) { alert('Nenhum caixa cadastrado'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape');
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 15;
+    const cfg = getConfigEvento();
+
+    // Título
+    doc.setFontSize(16); doc.setTextColor(91, 192, 235);
+    doc.text('ESCALA DE CAIXAS', pageW / 2, y, { align: 'center' }); y += 7;
+    doc.setFontSize(12); doc.setTextColor(0);
+    doc.text(`${cfg.nomeEvento} - Edição ${cfg.edicao}`, pageW / 2, y, { align: 'center' }); y += 6;
+    doc.setFontSize(10);
+    doc.text(cfg.datas, pageW / 2, y, { align: 'center' }); y += 12;
+
+    // Montar dados por dia
+    const escalaDias = [1,2,3,4].map(dia => {
+        const fixos = dados.caixas.filter(c => c.tipo === 'fixo' && c.dias.includes(dia)).sort((a,b) => a.nome.localeCompare(b.nome));
+        const volantes = dados.caixas.filter(c => c.tipo === 'volante' && c.dias.includes(dia)).sort((a,b) => a.nome.localeCompare(b.nome));
+        return { dia, fixos, volantes };
+    });
+
+    const maxFixos = Math.max(...escalaDias.map(d => d.fixos.length), 1);
+    const maxVolantes = Math.max(...escalaDias.map(d => d.volantes.length), 1);
+
+    // Montar tabela com cabeçalho por dia e separação fixo/volante
+    const head = [['#', DIAS_CAIXAS[1], DIAS_CAIXAS[2], DIAS_CAIXAS[3], DIAS_CAIXAS[4]]];
+    const body = [];
+
+    // Título Fixo
+    body.push([{ content: 'CAIXA FIXO', colSpan: 5, styles: { halign: 'center', fillColor: [212, 160, 23], textColor: [30, 30, 30], fontStyle: 'bold' } }]);
+
+    // Linhas fixos
+    for (let i = 0; i < maxFixos; i++) {
+        body.push([
+            (i + 1).toString(),
+            escalaDias[0].fixos[i] ? escalaDias[0].fixos[i].nome : '',
+            escalaDias[1].fixos[i] ? escalaDias[1].fixos[i].nome : '',
+            escalaDias[2].fixos[i] ? escalaDias[2].fixos[i].nome : '',
+            escalaDias[3].fixos[i] ? escalaDias[3].fixos[i].nome : ''
+        ]);
+    }
+
+    // Título Volante
+    body.push([{ content: 'CAIXA VOLANTE', colSpan: 5, styles: { halign: 'center', fillColor: [129, 199, 132], textColor: [30, 30, 30], fontStyle: 'bold' } }]);
+
+    // Linhas volantes
+    for (let i = 0; i < maxVolantes; i++) {
+        body.push([
+            (maxFixos + i + 1).toString(),
+            escalaDias[0].volantes[i] ? escalaDias[0].volantes[i].nome : '',
+            escalaDias[1].volantes[i] ? escalaDias[1].volantes[i].nome : '',
+            escalaDias[2].volantes[i] ? escalaDias[2].volantes[i].nome : '',
+            escalaDias[3].volantes[i] ? escalaDias[3].volantes[i].nome : ''
+        ]);
+    }
+
+    doc.autoTable({
+        startY: y,
+        theme: 'grid',
+        head: head,
+        body: body,
+        headStyles: { fillColor: [91, 192, 235], textColor: [255, 255, 255], fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: { 0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' } },
+        styles: { cellPadding: 3 }
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(8); doc.setTextColor(100);
+    doc.text(`Total: ${dados.caixas.length} pessoas | Fixos: ${dados.caixas.filter(c=>c.tipo==='fixo').length} | Volantes: ${dados.caixas.filter(c=>c.tipo==='volante').length}`, 14, y);
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, pageW - 14, y, { align: 'right' });
+
+    doc.save('escala_caixas_padroeira.pdf');
+    mostrarToast('📄 Escala exportada em PDF!');
 }
 
 // ===== DOAÇÕES DE ENTRADA (DINHEIRO) =====
