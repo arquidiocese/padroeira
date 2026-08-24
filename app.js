@@ -2530,9 +2530,20 @@ function salvarConfigCaixas() {
 
 function atualizarDiasDisponiveis() {
     if (!dados.configCaixas) dados.configCaixas = { fixos: 0, volantes: 0 };
-    const tipo = document.getElementById('caixaTipo').value;
-    const limite = tipo === 'fixo' ? (dados.configCaixas.fixos || 0) : (dados.configCaixas.volantes || 0);
+    const tipoSelect = document.getElementById('caixaTipo');
+    const tipo = tipoSelect ? tipoSelect.value : '';
+    const rowDias = document.getElementById('rowDiasCaixa');
     const aviso = document.getElementById('avisoLimiteCaixas');
+
+    // Se não selecionou tipo, esconder dias
+    if (!tipo) {
+        if (rowDias) rowDias.style.display = 'none';
+        if (aviso) aviso.style.display = 'none';
+        return;
+    }
+
+    const limite = tipo === 'fixo' ? (dados.configCaixas.fixos || 0) : (dados.configCaixas.volantes || 0);
+    let diasDisponiveis = 0;
     let diasLotados = [];
 
     [1,2,3,4].forEach(dia => {
@@ -2545,25 +2556,47 @@ function atualizarDiasDisponiveis() {
             if (jaCadastrados >= limite) {
                 checkbox.checked = false;
                 checkbox.disabled = true;
-                label.style.opacity = '0.4';
-                label.title = `Limite de ${limite} ${tipo === 'fixo' ? 'fixos' : 'volantes'} atingido (${jaCadastrados}/${limite})`;
+                label.style.opacity = '0.3';
+                label.style.textDecoration = 'line-through';
+                label.title = `LOTADO (${jaCadastrados}/${limite})`;
                 diasLotados.push(DIAS_CAIXAS[dia].split(' ')[0]);
             } else {
                 checkbox.disabled = false;
+                checkbox.checked = true;
                 label.style.opacity = '1';
-                label.title = `${jaCadastrados}/${limite} ${tipo === 'fixo' ? 'fixos' : 'volantes'}`;
+                label.style.textDecoration = 'none';
+                label.title = `${jaCadastrados}/${limite} preenchidos`;
+                diasDisponiveis++;
             }
         } else {
+            // Sem limite, tudo liberado
             checkbox.disabled = false;
+            checkbox.checked = true;
             label.style.opacity = '1';
+            label.style.textDecoration = 'none';
             label.title = '';
+            diasDisponiveis++;
         }
     });
 
+    // Mostrar/esconder linha de dias
+    if (rowDias) {
+        if (diasDisponiveis > 0) {
+            rowDias.style.display = 'flex';
+        } else {
+            rowDias.style.display = 'none';
+        }
+    }
+
+    // Aviso
     if (aviso) {
-        if (diasLotados.length > 0) {
+        if (diasDisponiveis === 0) {
             aviso.style.display = 'block';
-            aviso.textContent = `⚠️ Limite de ${tipo === 'fixo' ? 'fixos' : 'volantes'} atingido em: ${diasLotados.join(', ')}`;
+            aviso.innerHTML = `⚠️ <strong>Todos os dias estão completos</strong> para Caixa ${tipo === 'fixo' ? 'Fixo' : 'Volante'} (máx ${limite}/dia). Não é possível cadastrar.`;
+        } else if (diasLotados.length > 0) {
+            aviso.style.display = 'block';
+            aviso.innerHTML = `ℹ️ Dias lotados: ${diasLotados.join(', ')} — selecione apenas os dias disponíveis acima.`;
+            aviso.style.color = '#ffb300';
         } else {
             aviso.style.display = 'none';
         }
@@ -2575,6 +2608,7 @@ function cadastrarCaixa() {
     const telefone = document.getElementById('caixaTelefone').value.trim();
     const tipo = document.getElementById('caixaTipo').value;
     if (!nome) { alert('Preencha o nome da pessoa'); return; }
+    if (!tipo) { alert('Selecione o tipo de caixa'); return; }
 
     const dias = [];
     if (document.getElementById('caixaDia1').checked) dias.push(1);
@@ -2606,13 +2640,12 @@ function cadastrarCaixa() {
     dados.caixas.push({ id: Date.now(), nome, telefone, tipo, dias });
     salvarDados(dados);
 
-    // Limpar
+    // Limpar e resetar form
     document.getElementById('caixaNome').value = '';
     document.getElementById('caixaTelefone').value = '';
-    document.getElementById('caixaDia1').checked = true;
-    document.getElementById('caixaDia2').checked = true;
-    document.getElementById('caixaDia3').checked = true;
-    document.getElementById('caixaDia4').checked = true;
+    document.getElementById('caixaTipo').value = '';
+    document.getElementById('rowDiasCaixa').style.display = 'none';
+    document.getElementById('avisoLimiteCaixas').style.display = 'none';
 
     renderizarCaixas();
     atualizarDiasDisponiveis();

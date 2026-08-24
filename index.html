@@ -831,19 +831,20 @@
                     <input type="text" id="caixaNome" placeholder="Nome completo" style="flex:2">
                     <input type="tel" id="caixaTelefone" placeholder="Telefone (opcional)">
                     <select id="caixaTipo" onchange="atualizarDiasDisponiveis()">
+                        <option value="">Selecione o tipo...</option>
                         <option value="fixo">Caixa Fixo</option>
                         <option value="volante">Caixa Volante</option>
                     </select>
                 </div>
-                <div class="form-row">
-                    <span style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;margin-right:8px">Dias:</span>
-                    <label class="checkbox-opt" id="labelCaixaDia1"><input type="checkbox" id="caixaDia1" checked> 09/Out</label>
-                    <label class="checkbox-opt" id="labelCaixaDia2"><input type="checkbox" id="caixaDia2" checked> 10/Out</label>
-                    <label class="checkbox-opt" id="labelCaixaDia3"><input type="checkbox" id="caixaDia3" checked> 11/Out</label>
-                    <label class="checkbox-opt" id="labelCaixaDia4"><input type="checkbox" id="caixaDia4" checked> 12/Out</label>
+                <div class="form-row" id="rowDiasCaixa" style="display:none">
+                    <span style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;margin-right:8px">Dias disponíveis:</span>
+                    <label class="checkbox-opt" id="labelCaixaDia1"><input type="checkbox" id="caixaDia1"> 09/Out</label>
+                    <label class="checkbox-opt" id="labelCaixaDia2"><input type="checkbox" id="caixaDia2"> 10/Out</label>
+                    <label class="checkbox-opt" id="labelCaixaDia3"><input type="checkbox" id="caixaDia3"> 11/Out</label>
+                    <label class="checkbox-opt" id="labelCaixaDia4"><input type="checkbox" id="caixaDia4"> 12/Out</label>
                     <button class="btn-venda" onclick="cadastrarCaixa()">Cadastrar</button>
                 </div>
-                <div id="avisoLimiteCaixas" style="font-size:0.75rem;color:#ef5350;margin-top:5px;display:none"></div>
+                <div id="avisoLimiteCaixas" style="font-size:0.8rem;color:#ef5350;margin-top:8px;display:none"></div>
             </div>
 
             <!-- Resumo por dia -->
