@@ -114,6 +114,7 @@
             <button class="menu-btn" data-section="patrocinadores">🤝 Patrocinadores</button>
             <button class="menu-btn" data-section="doadores">🎁 Doações Bingo</button>
             <button class="menu-btn" data-section="necessidades">📋 Necessidades</button>
+            <button class="menu-btn" data-section="caixas">🧑‍💼 Caixas</button>
             <button class="menu-btn" data-section="config">⚙️ Config</button>
         </div>
         <div class="menu-barracas-vendas">
@@ -804,6 +805,60 @@
             </div>
 
             <div id="listaNecessidades"></div>
+        </section>
+
+        <!-- CAIXAS -->
+        <section id="sec-caixas" class="section">
+            <h2>🧑‍💼 Gestão de Caixas</h2>
+            <p class="secao-desc">Cadastre as pessoas que vão trabalhar nos caixas da festa. Configure os dias e a quantidade de caixas necessários.</p>
+
+            <!-- Config dos caixas -->
+            <div class="painel-madeira" style="margin-bottom:15px">
+                <h3>Configuração de Caixas</h3>
+                <div class="form-row">
+                    <label style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;white-space:nowrap">Caixas Fixos por dia:</label>
+                    <input type="number" id="cfgCaixasFixos" placeholder="Qtd" min="0" value="0" style="width:70px;flex:0 0 70px">
+                    <label style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;white-space:nowrap">Caixas Volantes por dia:</label>
+                    <input type="number" id="cfgCaixasVolantes" placeholder="Qtd" min="0" value="0" style="width:70px;flex:0 0 70px">
+                    <button class="btn-venda" onclick="salvarConfigCaixas()">Salvar Config</button>
+                </div>
+            </div>
+
+            <!-- Cadastrar caixa -->
+            <div class="painel-madeira">
+                <h3>Cadastrar Pessoa</h3>
+                <div class="form-row">
+                    <input type="text" id="caixaNome" placeholder="Nome completo" style="flex:2">
+                    <input type="tel" id="caixaTelefone" placeholder="Telefone (opcional)">
+                    <select id="caixaTipo">
+                        <option value="fixo">Caixa Fixo</option>
+                        <option value="volante">Caixa Volante</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <span style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;margin-right:8px">Dias:</span>
+                    <label class="checkbox-opt"><input type="checkbox" id="caixaDia1" checked> 09/Out</label>
+                    <label class="checkbox-opt"><input type="checkbox" id="caixaDia2" checked> 10/Out</label>
+                    <label class="checkbox-opt"><input type="checkbox" id="caixaDia3" checked> 11/Out</label>
+                    <label class="checkbox-opt"><input type="checkbox" id="caixaDia4" checked> 12/Out</label>
+                    <button class="btn-venda" onclick="cadastrarCaixa()">Cadastrar</button>
+                </div>
+            </div>
+
+            <!-- Resumo por dia -->
+            <div class="resumo-barraca" id="resumoCaixas" style="margin:15px 0"></div>
+
+            <!-- Visualização por dia -->
+            <div id="caixasPorDia"></div>
+
+            <!-- Lista completa -->
+            <div class="tabela-box" style="margin-top:15px">
+                <h4>Todos os Caixas Cadastrados</h4>
+                <table id="tabelaCaixas">
+                    <thead><tr><th>Nome</th><th>Telefone</th><th>Tipo</th><th>Dias</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </section>
 
         <!-- CONFIGURAÇÕES -->

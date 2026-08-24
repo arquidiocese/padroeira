@@ -67,7 +67,7 @@ let filtro = 'todos';
 let filtroDespesa = 'todos';
 
 function dadosVazios() {
-    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], meta: 0, configBarracas: null, configProdutos: null };
+    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], caixas: [], configCaixas: { fixos: 0, volantes: 0 }, meta: 0, configBarracas: null, configProdutos: null };
     BARRACAS.forEach(b => { d[b] = { vendas: [] }; });
     return d;
 }
@@ -116,6 +116,11 @@ function normalizarDados(d) {
     // Normalizar doações de entrada (dinheiro)
     if (d.doacoesEntrada && !Array.isArray(d.doacoesEntrada)) d.doacoesEntrada = Object.values(d.doacoesEntrada);
     if (!d.doacoesEntrada) d.doacoesEntrada = [];
+
+    // Normalizar caixas
+    if (d.caixas && !Array.isArray(d.caixas)) d.caixas = Object.values(d.caixas);
+    if (!d.caixas) d.caixas = [];
+    if (!d.configCaixas) d.configCaixas = { fixos: 0, volantes: 0 };
 
     return d;
 }
@@ -1098,6 +1103,7 @@ function renderizarTudo() {
     renderizarDoadores();
     renderizarNecessidades();
     renderizarDoacoesEntrada();
+    renderizarCaixas();
 }
 
 // ===== MODAL DE EDIÇÃO =====
@@ -2508,6 +2514,197 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+
+// ===== GESTÃO DE CAIXAS =====
+const DIAS_CAIXAS = {1: '09/Out (Sex)', 2: '10/Out (Sáb)', 3: '11/Out (Dom)', 4: '12/Out (Seg)'};
+
+function salvarConfigCaixas() {
+    if (!dados.configCaixas) dados.configCaixas = {};
+    dados.configCaixas.fixos = parseInt(document.getElementById('cfgCaixasFixos').value) || 0;
+    dados.configCaixas.volantes = parseInt(document.getElementById('cfgCaixasVolantes').value) || 0;
+    salvarDados(dados);
+    renderizarCaixas();
+    mostrarToast('Config de caixas salva!');
+}
+
+function cadastrarCaixa() {
+    const nome = document.getElementById('caixaNome').value.trim();
+    const telefone = document.getElementById('caixaTelefone').value.trim();
+    const tipo = document.getElementById('caixaTipo').value;
+    if (!nome) { alert('Preencha o nome da pessoa'); return; }
+
+    const dias = [];
+    if (document.getElementById('caixaDia1').checked) dias.push(1);
+    if (document.getElementById('caixaDia2').checked) dias.push(2);
+    if (document.getElementById('caixaDia3').checked) dias.push(3);
+    if (document.getElementById('caixaDia4').checked) dias.push(4);
+
+    if (dias.length === 0) { alert('Selecione pelo menos um dia'); return; }
+
+    if (!dados.caixas) dados.caixas = [];
+    dados.caixas.push({ id: Date.now(), nome, telefone, tipo, dias });
+    salvarDados(dados);
+
+    // Limpar
+    document.getElementById('caixaNome').value = '';
+    document.getElementById('caixaTelefone').value = '';
+    document.getElementById('caixaDia1').checked = true;
+    document.getElementById('caixaDia2').checked = true;
+    document.getElementById('caixaDia3').checked = true;
+    document.getElementById('caixaDia4').checked = true;
+
+    renderizarCaixas();
+    mostrarToast(`✅ ${nome} cadastrado como caixa ${tipo}!`);
+    registrarAcao(`Caixa cadastrado: ${nome} (${tipo})`);
+}
+
+function removerCaixa(id) {
+    if (!confirm('Remover esta pessoa dos caixas?')) return;
+    dados.caixas = (dados.caixas || []).filter(c => c.id !== id);
+    salvarDados(dados);
+    renderizarCaixas();
+}
+
+function editarCaixa(id) {
+    const item = (dados.caixas || []).find(c => c.id === id);
+    if (!item) return;
+    edicaoAtual = { tipo: 'caixa', id };
+
+    const diasChecks = [1,2,3,4].map(d =>
+        `<label class="checkbox-opt" style="display:inline-flex;margin-right:8px"><input type="checkbox" id="editCaixaDia${d}" ${item.dias.includes(d)?'checked':''}> ${DIAS_CAIXAS[d].split(' ')[0]}</label>`
+    ).join('');
+
+    document.getElementById('modalConteudo').innerHTML = `
+        <div class="campo"><label>Nome</label><input type="text" id="editNome" value="${item.nome}"></div>
+        <div class="campo"><label>Telefone</label><input type="tel" id="editTelefone" value="${item.telefone || ''}"></div>
+        <div class="campo"><label>Tipo</label>
+            <select id="editTipoCaixa">
+                <option value="fixo" ${item.tipo==='fixo'?'selected':''}>Caixa Fixo</option>
+                <option value="volante" ${item.tipo==='volante'?'selected':''}>Caixa Volante</option>
+            </select>
+        </div>
+        <div class="campo"><label>Dias</label><div style="margin-top:5px">${diasChecks}</div></div>
+    `;
+    abrirModal('Editar Caixa');
+}
+
+// Estender salvarEdicao para incluir caixas
+const _salvarEdicaoOriginal = salvarEdicao;
+salvarEdicao = function() {
+    if (edicaoAtual && edicaoAtual.tipo === 'caixa') {
+        const item = (dados.caixas || []).find(c => c.id === edicaoAtual.id);
+        if (item) {
+            item.nome = document.getElementById('editNome').value.trim() || item.nome;
+            item.telefone = document.getElementById('editTelefone').value.trim();
+            item.tipo = document.getElementById('editTipoCaixa').value;
+            item.dias = [];
+            if (document.getElementById('editCaixaDia1').checked) item.dias.push(1);
+            if (document.getElementById('editCaixaDia2').checked) item.dias.push(2);
+            if (document.getElementById('editCaixaDia3').checked) item.dias.push(3);
+            if (document.getElementById('editCaixaDia4').checked) item.dias.push(4);
+        }
+        salvarDados(dados);
+        fecharModal();
+        renderizarCaixas();
+        return;
+    }
+    _salvarEdicaoOriginal();
+};
+
+function renderizarCaixas() {
+    if (!dados.caixas) dados.caixas = [];
+    if (!dados.configCaixas) dados.configCaixas = { fixos: 0, volantes: 0 };
+
+    // Carregar config
+    const cfgFixos = document.getElementById('cfgCaixasFixos');
+    const cfgVolantes = document.getElementById('cfgCaixasVolantes');
+    if (cfgFixos) cfgFixos.value = dados.configCaixas.fixos || 0;
+    if (cfgVolantes) cfgVolantes.value = dados.configCaixas.volantes || 0;
+
+    const totalFixos = dados.configCaixas.fixos || 0;
+    const totalVolantes = dados.configCaixas.volantes || 0;
+    const totalNecessarios = totalFixos + totalVolantes;
+
+    // Resumo
+    const resumoEl = document.getElementById('resumoCaixas');
+    if (resumoEl) {
+        const totalCadastrados = dados.caixas.length;
+        const fixosCad = dados.caixas.filter(c => c.tipo === 'fixo').length;
+        const volantesCad = dados.caixas.filter(c => c.tipo === 'volante').length;
+        resumoEl.innerHTML = `
+            <div class="item neutro"><span>Necessários/dia</span><strong>${totalNecessarios}</strong></div>
+            <div class="item positivo"><span>Cadastrados</span><strong>${totalCadastrados}</strong></div>
+            <div class="item neutro"><span>Fixos</span><strong>${fixosCad}</strong></div>
+            <div class="item neutro"><span>Volantes</span><strong>${volantesCad}</strong></div>
+        `;
+    }
+
+    // Visualização por dia
+    const porDiaEl = document.getElementById('caixasPorDia');
+    if (porDiaEl) {
+        let html = '<div class="dashboard-grid">';
+        [1,2,3,4].forEach(dia => {
+            const doDia = dados.caixas.filter(c => c.dias.includes(dia));
+            const fixos = doDia.filter(c => c.tipo === 'fixo');
+            const volantes = doDia.filter(c => c.tipo === 'volante');
+            const faltamFixos = Math.max(0, totalFixos - fixos.length);
+            const faltamVolantes = Math.max(0, totalVolantes - volantes.length);
+
+            html += `<div class="dash-card">
+                <h4>📅 ${DIAS_CAIXAS[dia]}</h4>
+                <div style="font-size:0.82rem;margin-bottom:8px;color:rgba(255,255,255,0.6)">${doDia.length} pessoas escaladas</div>`;
+
+            if (fixos.length > 0) {
+                html += '<div style="margin-bottom:6px"><span style="font-size:0.72rem;font-weight:700;color:var(--cor-amarelo)">FIXOS:</span>';
+                fixos.forEach(c => {
+                    html += `<div style="font-size:0.8rem;color:var(--cor-palha);padding:2px 0">• ${c.nome}${c.telefone ? ' <small style="opacity:0.5">'+c.telefone+'</small>' : ''}</div>`;
+                });
+                html += '</div>';
+            }
+            if (volantes.length > 0) {
+                html += '<div style="margin-bottom:6px"><span style="font-size:0.72rem;font-weight:700;color:#81c784">VOLANTES:</span>';
+                volantes.forEach(c => {
+                    html += `<div style="font-size:0.8rem;color:var(--cor-palha);padding:2px 0">• ${c.nome}${c.telefone ? ' <small style="opacity:0.5">'+c.telefone+'</small>' : ''}</div>`;
+                });
+                html += '</div>';
+            }
+            if (doDia.length === 0) {
+                html += '<div style="font-size:0.8rem;opacity:0.4;padding:8px 0">Nenhum caixa escalado</div>';
+            }
+            if (faltamFixos > 0 || faltamVolantes > 0) {
+                html += `<div style="font-size:0.75rem;color:#ef5350;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.1)">`;
+                if (faltamFixos > 0) html += `Faltam ${faltamFixos} fixo(s) `;
+                if (faltamVolantes > 0) html += `Faltam ${faltamVolantes} volante(s)`;
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        porDiaEl.innerHTML = html;
+    }
+
+    // Tabela completa
+    const tbody = document.querySelector('#tabelaCaixas tbody');
+    if (tbody) {
+        const lista = [...dados.caixas].sort((a,b) => a.nome.localeCompare(b.nome));
+        tbody.innerHTML = lista.map(c => {
+            const diasStr = c.dias.map(d => DIAS_CAIXAS[d].split(' ')[0]).join(', ');
+            const tipoBadge = c.tipo === 'fixo'
+                ? '<span style="background:var(--cor-amarelo);color:#1a1a2e;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700">Fixo</span>'
+                : '<span style="background:#81c784;color:#1a1a2e;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700">Volante</span>';
+            return `<tr>
+                <td style="font-weight:700">${c.nome}</td>
+                <td>${c.telefone || '-'}</td>
+                <td>${tipoBadge}</td>
+                <td style="font-size:0.78rem">${diasStr}</td>
+                <td>
+                    <button class="btn-edit" onclick="editarCaixa(${c.id})">✏️</button>
+                    <button class="btn-delete" onclick="removerCaixa(${c.id})">X</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+}
 
 // ===== DOAÇÕES DE ENTRADA (DINHEIRO) =====
 function lancarDoacaoEntrada() {
