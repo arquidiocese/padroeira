@@ -2524,7 +2524,50 @@ function salvarConfigCaixas() {
     dados.configCaixas.volantes = parseInt(document.getElementById('cfgCaixasVolantes').value) || 0;
     salvarDados(dados);
     renderizarCaixas();
+    atualizarDiasDisponiveis();
     mostrarToast('Config de caixas salva!');
+}
+
+function atualizarDiasDisponiveis() {
+    if (!dados.configCaixas) dados.configCaixas = { fixos: 0, volantes: 0 };
+    const tipo = document.getElementById('caixaTipo').value;
+    const limite = tipo === 'fixo' ? (dados.configCaixas.fixos || 0) : (dados.configCaixas.volantes || 0);
+    const aviso = document.getElementById('avisoLimiteCaixas');
+    let diasLotados = [];
+
+    [1,2,3,4].forEach(dia => {
+        const checkbox = document.getElementById('caixaDia' + dia);
+        const label = document.getElementById('labelCaixaDia' + dia);
+        if (!checkbox || !label) return;
+
+        if (limite > 0) {
+            const jaCadastrados = (dados.caixas || []).filter(c => c.tipo === tipo && c.dias.includes(dia)).length;
+            if (jaCadastrados >= limite) {
+                checkbox.checked = false;
+                checkbox.disabled = true;
+                label.style.opacity = '0.4';
+                label.title = `Limite de ${limite} ${tipo === 'fixo' ? 'fixos' : 'volantes'} atingido (${jaCadastrados}/${limite})`;
+                diasLotados.push(DIAS_CAIXAS[dia].split(' ')[0]);
+            } else {
+                checkbox.disabled = false;
+                label.style.opacity = '1';
+                label.title = `${jaCadastrados}/${limite} ${tipo === 'fixo' ? 'fixos' : 'volantes'}`;
+            }
+        } else {
+            checkbox.disabled = false;
+            label.style.opacity = '1';
+            label.title = '';
+        }
+    });
+
+    if (aviso) {
+        if (diasLotados.length > 0) {
+            aviso.style.display = 'block';
+            aviso.textContent = `⚠️ Limite de ${tipo === 'fixo' ? 'fixos' : 'volantes'} atingido em: ${diasLotados.join(', ')}`;
+        } else {
+            aviso.style.display = 'none';
+        }
+    }
 }
 
 function cadastrarCaixa() {
@@ -2572,6 +2615,7 @@ function cadastrarCaixa() {
     document.getElementById('caixaDia4').checked = true;
 
     renderizarCaixas();
+    atualizarDiasDisponiveis();
     mostrarToast(`✅ ${nome} cadastrado como caixa ${tipo}!`);
     registrarAcao(`Caixa cadastrado: ${nome} (${tipo})`);
 }
@@ -2581,6 +2625,7 @@ function removerCaixa(id) {
     dados.caixas = (dados.caixas || []).filter(c => c.id !== id);
     salvarDados(dados);
     renderizarCaixas();
+    atualizarDiasDisponiveis();
 }
 
 function editarCaixa(id) {
@@ -2647,6 +2692,7 @@ salvarEdicao = function() {
         salvarDados(dados);
         fecharModal();
         renderizarCaixas();
+        atualizarDiasDisponiveis();
         return;
     }
     _salvarEdicaoOriginal();
