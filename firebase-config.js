@@ -22,7 +22,9 @@ const dbRef = db.ref('padroeira');
 
 // Salvar dados no Firebase
 function salvarFirebase(dados) {
-    dbRef.set(dados).catch(err => console.error('Erro ao salvar:', err));
+    // Converter para JSON e voltar para limpar undefined/funções
+    const limpo = JSON.parse(JSON.stringify(dados));
+    dbRef.set(limpo).catch(err => console.error('Erro ao salvar no Firebase:', err));
 }
 
 // Carregar dados do Firebase (retorna Promise)

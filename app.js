@@ -120,6 +120,10 @@ function normalizarDados(d) {
     // Normalizar caixas
     if (d.caixas && !Array.isArray(d.caixas)) d.caixas = Object.values(d.caixas);
     if (!d.caixas) d.caixas = [];
+    d.caixas.forEach(c => {
+        if (c.dias && !Array.isArray(c.dias)) c.dias = Object.values(c.dias);
+        if (!c.dias) c.dias = [];
+    });
     if (!d.configCaixas) d.configCaixas = { fixos: 0, volantes: 0 };
 
     return d;
@@ -155,6 +159,16 @@ if (typeof carregarFirebase === 'function') {
             salvarFirebase(dados);
         }
     }).catch(err => console.log('Firebase offline, usando localStorage'));
+}
+
+// Escutar mudanças em tempo real do Firebase (sync entre dispositivos)
+if (typeof escutarMudancas === 'function') {
+    escutarMudancas(function(dadosFirebase) {
+        const norm = normalizarDados(dadosFirebase);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(norm));
+        dados = norm;
+        renderizarTudo();
+    });
 }
 
 // ===== NAVEGAÇÃO =====
