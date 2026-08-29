@@ -84,6 +84,7 @@ function normalizarDados(d) {
     }
     if (!d.despesas) d.despesas = [];
 
+    // Normalizar barracas fixas
     BARRACAS.forEach(b => {
         if (!d[b]) d[b] = { vendas: [] };
         if (d[b].vendas && !Array.isArray(d[b].vendas)) {
@@ -91,6 +92,20 @@ function normalizarDados(d) {
         }
         if (!d[b].vendas) d[b].vendas = [];
     });
+
+    // Normalizar barracas DINÂMICAS (vindas da config, ainda não registradas em BARRACAS)
+    if (d.configBarracas) {
+        const cfgBarracas = Array.isArray(d.configBarracas) ? d.configBarracas : Object.values(d.configBarracas);
+        cfgBarracas.forEach(cb => {
+            const bid = cb.id;
+            if (!bid) return;
+            if (!d[bid]) d[bid] = { vendas: [] };
+            if (d[bid].vendas && !Array.isArray(d[bid].vendas)) {
+                d[bid].vendas = Object.values(d[bid].vendas);
+            }
+            if (!d[bid].vendas) d[bid].vendas = [];
+        });
+    }
 
     if (!d.meta) d.meta = 0;
 
@@ -164,10 +179,16 @@ if (typeof carregarFirebase === 'function') {
 // Escutar mudanças em tempo real do Firebase (sync entre dispositivos)
 if (typeof escutarMudancas === 'function') {
     escutarMudancas(function(dadosFirebase) {
-        const norm = normalizarDados(dadosFirebase);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(norm));
-        dados = norm;
-        renderizarTudo();
+        try {
+            const norm = normalizarDados(dadosFirebase);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(norm));
+            dados = norm;
+            // Recarregar barracas dinâmicas caso tenham vindo do outro dispositivo
+            if (typeof carregarConfigDinamica === 'function') carregarConfigDinamica();
+            renderizarTudo();
+        } catch (err) {
+            console.error('Erro ao sincronizar dados do Firebase:', err);
+        }
     });
 }
 

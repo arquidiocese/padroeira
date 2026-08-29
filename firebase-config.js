@@ -21,10 +21,12 @@ const dbRef = db.ref('padroeira');
 // ===== FUNÇÕES DE SINCRONIZAÇÃO =====
 
 // Salvar dados no Firebase
+// Usa update() por campo de topo em vez de set() no nó inteiro,
+// para reduzir o risco de um dispositivo sobrescrever dados de outro.
 function salvarFirebase(dados) {
     // Converter para JSON e voltar para limpar undefined/funções
     const limpo = JSON.parse(JSON.stringify(dados));
-    dbRef.set(limpo).catch(err => console.error('Erro ao salvar no Firebase:', err));
+    dbRef.update(limpo).catch(err => console.error('Erro ao salvar no Firebase:', err));
 }
 
 // Carregar dados do Firebase (retorna Promise)
