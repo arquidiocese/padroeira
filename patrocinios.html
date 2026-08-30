@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patrocinadores - Festa da Padroeira 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bandeirinhas">
+        <div class="bandeirinha b1"></div><div class="bandeirinha b2"></div>
+        <div class="bandeirinha b3"></div><div class="bandeirinha b4"></div>
+        <div class="bandeirinha b5"></div><div class="bandeirinha b6"></div>
+        <div class="bandeirinha b7"></div><div class="bandeirinha b8"></div>
+        <div class="bandeirinha b9"></div><div class="bandeirinha b10"></div>
+        <div class="bandeirinha b11"></div><div class="bandeirinha b12"></div>
+    </div>
+
+    <header class="header">
+        <h1>PATROCINADORES</h1>
+        <p>Festa da Padroeira 2026</p>
+        <p class="header-datas">09, 10, 11 e 12 de Outubro</p>
+    </header>
+
+    <div class="status-bar">
+        <div class="status-left">
+            <span class="firebase-status" id="firebaseStatus"><span class="status-dot offline"></span> Conectando...</span>
+        </div>
+    </div>
+
+    <main class="container">
+        <section class="section active">
+            <p class="secao-desc">Cadastre os patrocinadores (dinheiro, serviços ou produtos) que apoiam a festa.</p>
+            <div class="painel-madeira">
+                <h3>Lançar Patrocínio</h3>
+                <div class="form-row">
+                    <input type="text" id="nomePatrocinador" placeholder="Nome do Patrocinador">
+                    <select id="tipoPatrocinio">
+                        <option value="dinheiro">💵 Dinheiro</option>
+                        <option value="servico">🔧 Serviço (ambulância, segurança...)</option>
+                        <option value="produto">📦 Produto/Material</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <input type="number" id="valorPatrocinio" placeholder="Valor R$ (ou estimado)" step="0.01" min="0">
+                    <input type="text" id="descPatrocinio" placeholder="O que fornece?">
+                </div>
+                <div class="form-row">
+                    <input type="text" id="obsPatrocinio" placeholder="Observação (opcional)">
+                    <label class="checkbox-opt"><input type="checkbox" id="recebidoPatrocinio"> Já recebido/confirmado</label>
+                    <button class="btn-patrocinio" onclick="lancarPatrocinio()">Lançar</button>
+                </div>
+            </div>
+
+            <div class="filtros-despesa">
+                <input type="text" id="buscaPatrocinador" placeholder="🔍 Buscar patrocinador..." oninput="renderizarPagina()" style="padding:6px 12px;border-radius:15px;border:1px solid var(--cor-madeira-clara);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.82rem;min-width:200px;">
+                <button class="filtro-btn active" data-ordpatr="alfa" onclick="ordenarPatrocinadores('alfa')">A-Z</button>
+                <button class="filtro-btn" data-ordpatr="valor" onclick="ordenarPatrocinadores('valor')">Maior Valor</button>
+                <button class="filtro-btn" data-ordpatr="pendente" onclick="ordenarPatrocinadores('pendente')">Pendentes</button>
+                <button class="filtro-btn" data-ordpatr="recebido" onclick="ordenarPatrocinadores('recebido')">Recebidos</button>
+            </div>
+            <div class="tabela-box">
+                <table id="tabelaPatrocinadores"><thead><tr><th>Patrocinador</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+            </div>
+            <div class="resumo-barraca" id="resumoPatrocinadores"></div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="fecharModal()" style="display:none">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 id="modalTitulo">Editar Patrocínio</h3>
+            <div id="modalConteudo"></div>
+            <div class="modal-btns">
+                <button class="btn-venda" onclick="salvarEdicaoPatrocinio()">Salvar</button>
+                <button class="btn-gasto" onclick="fecharModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Basílica Menor Nossa Senhora da Conceição Aparecida</p>
+        <p>Festa da Padroeira 2026 | Patrocinadores</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="shared.js"></script>
+    <script src="pagina-patrocinios.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itens Necessários - Festa da Padroeira 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bandeirinhas">
+        <div class="bandeirinha b1"></div><div class="bandeirinha b2"></div>
+        <div class="bandeirinha b3"></div><div class="bandeirinha b4"></div>
+        <div class="bandeirinha b5"></div><div class="bandeirinha b6"></div>
+        <div class="bandeirinha b7"></div><div class="bandeirinha b8"></div>
+        <div class="bandeirinha b9"></div><div class="bandeirinha b10"></div>
+        <div class="bandeirinha b11"></div><div class="bandeirinha b12"></div>
+    </div>
+
+    <header class="header">
+        <h1>ITENS NECESSÁRIOS</h1>
+        <p>Festa da Padroeira 2026</p>
+        <p class="header-datas">09, 10, 11 e 12 de Outubro</p>
+    </header>
+
+    <div class="status-bar">
+        <div class="status-left">
+            <span class="firebase-status" id="firebaseStatus"><span class="status-dot offline"></span> Conectando...</span>
+        </div>
+    </div>
+
+    <main class="container">
+        <section class="section active">
+            <p class="secao-desc">Liste os itens que cada barraca vai precisar. Use para organizar doações e compras antes da festa.</p>
+            <div class="painel-madeira">
+                <h3>Adicionar Item Necessário</h3>
+                <div class="form-row">
+                    <select id="necessidadeBarraca">
+                        <option value="geral">Geral (evento todo)</option>
+                    </select>
+                    <input type="text" id="necessidadeItem" placeholder="Item (ex: 10kg de carne moída, 200 pães...)">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="necessidadeQtd" placeholder="Qtd" min="1" value="1" step="1">
+                    <select id="necessidadeUnidade">
+                        <option value="un">Unidade(s)</option>
+                        <option value="kg">Kg</option>
+                        <option value="g">Gramas</option>
+                        <option value="L">Litros</option>
+                        <option value="cx">Caixa(s)</option>
+                        <option value="pct">Pacote(s)</option>
+                        <option value="fardo">Fardo(s)</option>
+                        <option value="dz">Dúzia(s)</option>
+                    </select>
+                    <input type="text" id="necessidadeObs" placeholder="Observação (opcional)">
+                    <button class="btn-venda" onclick="adicionarNecessidade()">Adicionar</button>
+                </div>
+            </div>
+
+            <div class="export-btns" style="padding:10px 0">
+                <button class="btn-export" onclick="exportarNecessidadesPDF()">📄 Exportar Lista PDF</button>
+                <button class="btn-export" onclick="exportarNecessidadesCSV()">📥 Exportar CSV</button>
+            </div>
+
+            <div id="listaNecessidades"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Basílica Menor Nossa Senhora da Conceição Aparecida</p>
+        <p>Festa da Padroeira 2026 | Itens Necessários</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="shared.js"></script>
+    <script src="pagina-necessidades.js"></script>
+</body>
+</html>

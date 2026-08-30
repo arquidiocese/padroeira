@@ -1,0 +1,137 @@
+// ===== PÁGINA PATROCINADORES =====
+let ordenacaoPatr = 'alfa';
+let edicaoPatrId = null;
+
+function lancarPatrocinio() {
+    const nome = document.getElementById('nomePatrocinador').value.trim();
+    const tipo = document.getElementById('tipoPatrocinio').value;
+    const valor = parseFloat(document.getElementById('valorPatrocinio').value) || 0;
+    const desc = document.getElementById('descPatrocinio').value.trim();
+    const obs = document.getElementById('obsPatrocinio').value.trim();
+    const recebido = document.getElementById('recebidoPatrocinio').checked;
+    if (!nome) { alert('Preencha o nome do patrocinador'); return; }
+
+    if (!dados.patrocinadores) dados.patrocinadores = [];
+    dados.patrocinadores.push({ id: Date.now(), nome, tipo, valor, desc, barraca: '', obs, recebido });
+    salvarDados(dados);
+
+    document.getElementById('nomePatrocinador').value = '';
+    document.getElementById('valorPatrocinio').value = '';
+    document.getElementById('descPatrocinio').value = '';
+    document.getElementById('obsPatrocinio').value = '';
+    document.getElementById('recebidoPatrocinio').checked = false;
+    renderizarPagina();
+    mostrarToast(`✅ Patrocínio de ${nome} lançado!`);
+}
+
+function removerPatrocinio(id) {
+    if (!confirm('Excluir este patrocínio?')) return;
+    dados.patrocinadores = (dados.patrocinadores || []).filter(p => p.id !== id);
+    salvarDados(dados);
+    renderizarPagina();
+}
+
+function toggleRecebido(id) {
+    const item = (dados.patrocinadores || []).find(p => p.id === id);
+    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarPagina(); }
+}
+
+function ordenarPatrocinadores(tipo) {
+    ordenacaoPatr = tipo;
+    document.querySelectorAll('[data-ordpatr]').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`[data-ordpatr="${tipo}"]`);
+    if (btn) btn.classList.add('active');
+    renderizarPagina();
+}
+
+function editarPatrocinio(id) {
+    const item = (dados.patrocinadores || []).find(p => p.id === id);
+    if (!item) return;
+    edicaoPatrId = id;
+    const tipoSel = (t) => item.tipo === t ? 'selected' : '';
+    document.getElementById('modalConteudo').innerHTML = `
+        <div class="campo"><label>Patrocinador</label><input type="text" id="editNome" value="${item.nome}"></div>
+        <div class="campo"><label>Tipo</label>
+            <select id="editTipo">
+                <option value="dinheiro" ${tipoSel('dinheiro')}>💵 Dinheiro</option>
+                <option value="servico" ${tipoSel('servico')}>🔧 Serviço</option>
+                <option value="produto" ${tipoSel('produto')}>📦 Produto/Material</option>
+            </select>
+        </div>
+        <div class="campo"><label>Valor (R$)</label><input type="number" id="editValor" value="${item.valor}" step="0.01"></div>
+        <div class="campo"><label>Descrição</label><input type="text" id="editDesc" value="${item.desc || ''}"></div>
+        <div class="campo"><label>Observação</label><input type="text" id="editObs" value="${item.obs || ''}"></div>
+    `;
+    document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function salvarEdicaoPatrocinio() {
+    const item = (dados.patrocinadores || []).find(p => p.id === edicaoPatrId);
+    if (!item) { fecharModal(); return; }
+    item.nome = document.getElementById('editNome').value.trim() || item.nome;
+    item.tipo = document.getElementById('editTipo').value;
+    const v = document.getElementById('editValor').value;
+    item.valor = v === '' ? 0 : parseFloat(v);
+    item.desc = document.getElementById('editDesc').value.trim();
+    item.obs = document.getElementById('editObs').value.trim();
+    salvarDados(dados);
+    fecharModal();
+    renderizarPagina();
+}
+
+function fecharModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+    edicaoPatrId = null;
+}
+
+function renderizarPagina() {
+    if (!dados.patrocinadores) dados.patrocinadores = [];
+    const tbody = document.querySelector('#tabelaPatrocinadores tbody');
+    const busca = (document.getElementById('buscaPatrocinador')?.value || '').toLowerCase();
+    let lista = [...dados.patrocinadores];
+
+    if (busca) lista = lista.filter(p => p.nome.toLowerCase().includes(busca) || (p.desc||'').toLowerCase().includes(busca));
+    if (ordenacaoPatr === 'alfa') lista.sort((a,b) => a.nome.localeCompare(b.nome));
+    else if (ordenacaoPatr === 'valor') lista.sort((a,b) => b.valor - a.valor);
+    else if (ordenacaoPatr === 'pendente') lista = lista.filter(p => !p.recebido).sort((a,b) => a.nome.localeCompare(b.nome));
+    else if (ordenacaoPatr === 'recebido') lista = lista.filter(p => p.recebido).sort((a,b) => a.nome.localeCompare(b.nome));
+
+    const TIPO_BADGE = { dinheiro: '💵 Dinheiro', servico: '🔧 Serviço', produto: '📦 Produto' };
+
+    if (tbody) {
+        tbody.innerHTML = lista.map(p => `
+            <tr>
+                <td style="font-weight:700">${p.nome}</td>
+                <td><span class="badge-categoria">${TIPO_BADGE[p.tipo] || '💵 Dinheiro'}</span></td>
+                <td>${p.desc || '-'}</td>
+                <td>${p.valor > 0 ? 'R$ ' + fmt(p.valor) : '-'}</td>
+                <td><span class="${p.recebido ? 'badge-pago' : 'badge-pendente'}" onclick="toggleRecebido(${p.id})">${p.recebido ? 'Recebido' : 'Pendente'}</span></td>
+                <td><button class="btn-edit" onclick="editarPatrocinio(${p.id})">✏️</button> <button class="btn-delete" onclick="removerPatrocinio(${p.id})">X</button></td>
+            </tr>
+        `).join('') || '<tr><td colspan="6" style="text-align:center;opacity:0.5;padding:15px">Nenhum patrocinador cadastrado</td></tr>';
+    }
+
+    // Resumo
+    const todos = dados.patrocinadores;
+    const totalDinheiro = todos.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s,p) => s + (p.valor||0), 0);
+    const totalServico = todos.filter(p => p.tipo === 'servico').reduce((s,p) => s + (p.valor||0), 0);
+    const totalProduto = todos.filter(p => p.tipo === 'produto').reduce((s,p) => s + (p.valor||0), 0);
+    const totalGeral = todos.reduce((s,p) => s + (p.valor||0), 0);
+    const recebido = todos.filter(p => p.recebido).reduce((s,p) => s + (p.valor||0), 0);
+
+    const resumoEl = document.getElementById('resumoPatrocinadores');
+    if (resumoEl) {
+        resumoEl.innerHTML = `
+            <div class="item positivo"><span>Total Geral</span><strong>${R$(totalGeral)}</strong></div>
+            <div class="item positivo"><span>💵 Dinheiro</span><strong>${R$(totalDinheiro)}</strong></div>
+            <div class="item doacao"><span>🔧 Serviços</span><strong>${R$(totalServico)}</strong></div>
+            <div class="item doacao"><span>📦 Produtos</span><strong>${R$(totalProduto)}</strong></div>
+            <div class="item positivo"><span>Recebido</span><strong>${R$(recebido)}</strong></div>
+            <div class="item negativo"><span>Pendente</span><strong>${R$(totalGeral - recebido)}</strong></div>
+            <div class="item neutro"><span>Qtd</span><strong>${todos.length}</strong></div>
+        `;
+    }
+}
+
+iniciarStatusFirebase();
+iniciarSync();

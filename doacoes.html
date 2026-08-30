@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doações - Festa da Padroeira 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .sub-nav { display:flex; justify-content:center; gap:8px; padding:12px; flex-wrap:wrap; }
+        .sub-nav button { background: var(--cor-madeira); border: 2px solid var(--cor-madeira-clara); color: var(--cor-palha); padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; font-family: 'Nunito', sans-serif; }
+        .sub-nav button.active { background: linear-gradient(135deg, #5bc0eb, #87ceeb); border-color: #87ceeb; color: #1e3a5f; }
+        .sub-section { display: none; }
+        .sub-section.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="bandeirinhas">
+        <div class="bandeirinha b1"></div><div class="bandeirinha b2"></div>
+        <div class="bandeirinha b3"></div><div class="bandeirinha b4"></div>
+        <div class="bandeirinha b5"></div><div class="bandeirinha b6"></div>
+        <div class="bandeirinha b7"></div><div class="bandeirinha b8"></div>
+        <div class="bandeirinha b9"></div><div class="bandeirinha b10"></div>
+        <div class="bandeirinha b11"></div><div class="bandeirinha b12"></div>
+    </div>
+
+    <header class="header">
+        <h1>DOAÇÕES</h1>
+        <p>Festa da Padroeira 2026</p>
+        <p class="header-datas">09, 10, 11 e 12 de Outubro</p>
+    </header>
+
+    <div class="status-bar">
+        <div class="status-left">
+            <span class="firebase-status" id="firebaseStatus"><span class="status-dot offline"></span> Conectando...</span>
+        </div>
+    </div>
+
+    <nav class="sub-nav">
+        <button class="active" onclick="mostrarSub('dinheiro')">💚 Doações em Dinheiro</button>
+        <button onclick="mostrarSub('bingo')">🎁 Doações Bingo/Leilão</button>
+    </nav>
+
+    <main class="container">
+        <!-- DINHEIRO -->
+        <section class="sub-section active" id="sub-dinheiro">
+            <p class="secao-desc">Doações em dinheiro de pessoas, empresas ou saldos anteriores.</p>
+            <div class="painel-madeira">
+                <h3>Lançar Doação em Dinheiro</h3>
+                <div class="form-row">
+                    <input type="text" id="doacaoNome" placeholder="Nome do doador" style="flex:2">
+                    <input type="number" id="doacaoValor" placeholder="Valor R$" step="0.01" min="0">
+                </div>
+                <div class="form-row">
+                    <select id="doacaoTipo">
+                        <option value="pessoa">👤 Pessoa Física</option>
+                        <option value="empresa">🏢 Empresa</option>
+                        <option value="saldo">📦 Saldo Anterior</option>
+                        <option value="outro">📌 Outro</option>
+                    </select>
+                    <input type="date" id="doacaoData">
+                    <input type="text" id="doacaoObs" placeholder="Observação (opcional)">
+                    <label class="checkbox-opt"><input type="checkbox" id="doacaoRecebido" checked> Já recebido</label>
+                    <button class="btn-venda" onclick="lancarDoacaoEntrada()">Lançar</button>
+                </div>
+            </div>
+            <div class="tabela-box">
+                <table id="tabelaDoacoesEntrada">
+                    <thead><tr><th>Doador</th><th>Tipo</th><th>Valor</th><th>Data</th><th>Obs</th><th>Status</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="resumo-barraca" id="resumoDoacoesEntrada"></div>
+        </section>
+
+        <!-- BINGO/LEILÃO -->
+        <section class="sub-section" id="sub-bingo">
+            <p class="secao-desc">Empresas e pessoas que doaram itens/prêmios para o bingo e leilão.</p>
+            <div class="painel-madeira">
+                <h3>Cadastrar Doação de Prêmio</h3>
+                <div class="form-row">
+                    <input type="text" id="doadorNome" placeholder="Nome da empresa/pessoa" list="listaDoadoresExistentes" autocomplete="off">
+                    <datalist id="listaDoadoresExistentes"></datalist>
+                    <input type="text" id="doadorItem" placeholder="Item doado (ex: Cesta básica, TV...)">
+                </div>
+                <div class="form-row">
+                    <input type="number" id="doadorValor" placeholder="Valor estimado R$ (opcional)" step="0.01" min="0">
+                    <input type="text" id="doadorObs" placeholder="Observação (opcional)">
+                    <button class="btn-patrocinio" onclick="lancarDoador()">Cadastrar</button>
+                </div>
+            </div>
+            <div class="filtros-despesa">
+                <input type="text" id="buscaDoador" placeholder="🔍 Buscar doador..." oninput="renderizarPagina()" style="padding:6px 12px;border-radius:15px;border:1px solid var(--cor-madeira-clara);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.82rem;min-width:200px;">
+            </div>
+            <div class="tabela-box">
+                <table id="tabelaDoadores"><thead><tr><th>Doador</th><th>Item Doado</th><th>Valor Est.</th><th>Obs</th><th></th></tr></thead><tbody></tbody></table>
+            </div>
+            <div class="resumo-barraca" id="resumoDoadores"></div>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="fecharModal()" style="display:none">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 id="modalTitulo">Editar</h3>
+            <div id="modalConteudo"></div>
+            <div class="modal-btns">
+                <button class="btn-venda" onclick="salvarEdicaoDoacoes()">Salvar</button>
+                <button class="btn-gasto" onclick="fecharModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>Basílica Menor Nossa Senhora da Conceição Aparecida</p>
+        <p>Festa da Padroeira 2026 | Doações</p>
+    </footer>
+
+    <script src="firebase-config.js"></script>
+    <script src="shared.js"></script>
+    <script src="pagina-doacoes.js"></script>
+</body>
+</html>
