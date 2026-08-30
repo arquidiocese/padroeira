@@ -50,18 +50,18 @@
             <div class="painel-madeira">
                 <h3>Lançar Doação em Dinheiro</h3>
                 <div class="form-row">
-                    <input type="text" id="doacaoNome" placeholder="Nome do doador" style="flex:2">
-                    <input type="number" id="doacaoValor" placeholder="Valor R$" step="0.01" min="0">
+                    <input type="text" id="doacaoNome" placeholder="Nome do doador" style="flex:2;min-width:200px">
+                    <input type="number" id="doacaoValor" placeholder="Valor R$" step="0.01" min="0" style="width:130px;flex:0 0 130px">
                 </div>
                 <div class="form-row">
-                    <select id="doacaoTipo">
+                    <select id="doacaoTipo" style="flex:1;min-width:170px">
                         <option value="pessoa">👤 Pessoa Física</option>
                         <option value="empresa">🏢 Empresa</option>
                         <option value="saldo">📦 Saldo Anterior</option>
                         <option value="outro">📌 Outro</option>
                     </select>
-                    <input type="date" id="doacaoData">
-                    <input type="text" id="doacaoObs" placeholder="Observação (opcional)">
+                    <input type="date" id="doacaoData" style="flex:0 0 150px">
+                    <input type="text" id="doacaoObs" placeholder="Observação (opcional)" style="flex:1;min-width:150px">
                     <label class="checkbox-opt"><input type="checkbox" id="doacaoRecebido" checked> Já recebido</label>
                     <button class="btn-venda" onclick="lancarDoacaoEntrada()">Lançar</button>
                 </div>
@@ -86,8 +86,8 @@
                     <input type="text" id="doadorItem" placeholder="Item doado (ex: Cesta básica, TV...)">
                 </div>
                 <div class="form-row">
-                    <input type="number" id="doadorValor" placeholder="Valor estimado R$ (opcional)" step="0.01" min="0">
-                    <input type="text" id="doadorObs" placeholder="Observação (opcional)">
+                    <input type="number" id="doadorValor" placeholder="Valor est. R$" step="0.01" min="0" style="width:130px;flex:0 0 130px">
+                    <input type="text" id="doadorObs" placeholder="Observação (opcional)" style="flex:1;min-width:150px">
                     <button class="btn-patrocinio" onclick="lancarDoador()">Cadastrar</button>
                 </div>
             </div>

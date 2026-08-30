@@ -192,6 +192,8 @@ body {
 }
 .form-row select,
 .form-row input[type="text"],
+.form-row input[type="tel"],
+.form-row input[type="date"],
 .form-row input[type="number"] {
     padding: 10px 14px; border-radius: 10px;
     border: 2px solid rgba(245, 222, 179, 0.25);
@@ -201,6 +203,7 @@ body {
 .form-row select:focus, .form-row input:focus { outline: none; border-color: var(--cor-amarelo); }
 .form-row select { flex: 2; min-width: 160px; }
 .form-row input[type="text"] { flex: 1.5; min-width: 140px; }
+.form-row input[type="tel"] { flex: 1; min-width: 150px; }
 .form-row input[type="number"] { width: 90px; flex: 0 0 90px; }
 .form-row select option { background: var(--cor-madeira); color: var(--cor-palha); }
 
