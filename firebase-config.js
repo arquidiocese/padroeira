@@ -26,7 +26,13 @@ const dbRef = db.ref('padroeira');
 function salvarFirebase(dados) {
     // Converter para JSON e voltar para limpar undefined/funções
     const limpo = JSON.parse(JSON.stringify(dados));
-    dbRef.update(limpo).catch(err => console.error('Erro ao salvar no Firebase:', err));
+    dbRef.update(limpo).catch(err => {
+        console.error('Erro ao salvar no Firebase:', err);
+        // Avisa o usuário quando a gravação falha (ex: regras expiradas / sem permissão)
+        if (typeof mostrarToast === 'function') {
+            mostrarToast('⚠️ ERRO: dados NÃO salvos no servidor. Verifique a conexão.', 'error');
+        }
+    });
 }
 
 // Carregar dados do Firebase (retorna Promise)

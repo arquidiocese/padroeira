@@ -21,6 +21,15 @@
     <p>Esta página SÓ LÊ o Firebase. Não altera nada.</p>
     <div id="resumo"></div>
     <button onclick="baixarBackup()">Baixar Backup JSON dos dados do Firebase</button>
+
+    <div class="box" style="border:2px solid #d4a017">
+        <h3>🔄 Recuperar dados salvos NESTE computador (localStorage)</h3>
+        <p>Se você cadastrou dados (patrocinadores, frango assado, etc.) NESTE computador e eles sumiram, clique abaixo para enviá-los ao Firebase.</p>
+        <div id="localResumo"></div>
+        <button onclick="verLocal()">1. Ver o que está salvo neste computador</button>
+        <button onclick="enviarLocalParaFirebase()" style="background:#81c784">2. Enviar dados deste computador para o Firebase</button>
+        <pre id="localJson" style="display:none"></pre>
+    </div>
     <div class="box">
         <h3>Dados completos (JSON):</h3>
         <pre id="json">Carregando...</pre>
@@ -65,6 +74,48 @@
             link.href = URL.createObjectURL(blob);
             link.download = 'backup_firebase_padroeira.json';
             link.click();
+        }
+
+        const STORAGE_KEY = 'padroeira_financeiro_v1';
+
+        function getLocal() {
+            const d = localStorage.getItem(STORAGE_KEY);
+            if (!d) return null;
+            try { return JSON.parse(d); } catch { return null; }
+        }
+
+        function verLocal() {
+            const local = getLocal();
+            const resumoEl = document.getElementById('localResumo');
+            const jsonEl = document.getElementById('localJson');
+            if (!local) {
+                resumoEl.innerHTML = '<div class="zero">Nenhum dado salvo neste computador (localStorage vazio).</div>';
+                return;
+            }
+            const cont = (arr) => !arr ? 0 : (Array.isArray(arr) ? arr.length : Object.keys(arr).length);
+            let html = '<ul>';
+            html += `<li>Patrocinadores: <b>${cont(local.patrocinadores)}</b></li>`;
+            html += `<li>Despesas: <b>${cont(local.despesas)}</b></li>`;
+            html += `<li>Doações dinheiro: <b>${cont(local.doacoesEntrada)}</b></li>`;
+            html += `<li>Doadores bingo: <b>${cont(local.doadores)}</b></li>`;
+            html += `<li>Necessidades: <b>${cont(local.necessidades)}</b></li>`;
+            html += `<li>Caixas: <b>${cont(local.caixas)}</b></li>`;
+            html += `<li>Config Barracas (frango assado): <b>${cont(local.configBarracas)}</b></li>`;
+            html += '</ul>';
+            resumoEl.innerHTML = html;
+            jsonEl.style.display = 'block';
+            jsonEl.textContent = JSON.stringify(local, null, 2);
+        }
+
+        function enviarLocalParaFirebase() {
+            const local = getLocal();
+            if (!local) { alert('Nenhum dado neste computador para enviar.'); return; }
+            if (!confirm('Isso vai ENVIAR os dados deste computador para o Firebase (mesclando com o que já existe lá). Continuar?')) return;
+            const limpo = JSON.parse(JSON.stringify(local));
+            dbRef.update(limpo).then(() => {
+                alert('Dados enviados com sucesso! Recarregue o site principal para ver.');
+                location.reload();
+            }).catch(err => alert('Erro ao enviar: ' + err.message));
         }
     </script>
 </body>
