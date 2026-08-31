@@ -30,6 +30,13 @@
         <button onclick="enviarLocalParaFirebase()" style="background:#81c784">2. Enviar dados deste computador para o Firebase</button>
         <pre id="localJson" style="display:none"></pre>
     </div>
+
+    <div class="box" style="border:2px solid #81c784">
+        <h3>📋 Colar dados de outro local e enviar ao Firebase</h3>
+        <p>Cole abaixo o JSON dos dados (copiado do site antigo) e clique em enviar.</p>
+        <textarea id="colarDados" placeholder="Cole aqui o JSON dos dados..." style="width:100%;height:120px;background:#0a1628;color:#e8f4fd;border:1px solid #5bc0eb;border-radius:6px;padding:10px;font-family:monospace;font-size:0.75rem"></textarea>
+        <button onclick="enviarColadoParaFirebase()" style="background:#81c784;margin-top:8px">Enviar dados colados para o Firebase</button>
+    </div>
     <div class="box">
         <h3>Dados completos (JSON):</h3>
         <pre id="json">Carregando...</pre>
@@ -114,6 +121,19 @@
             const limpo = JSON.parse(JSON.stringify(local));
             dbRef.update(limpo).then(() => {
                 alert('Dados enviados com sucesso! Recarregue o site principal para ver.');
+                location.reload();
+            }).catch(err => alert('Erro ao enviar: ' + err.message));
+        }
+
+        function enviarColadoParaFirebase() {
+            const txt = document.getElementById('colarDados').value.trim();
+            if (!txt) { alert('Cole os dados no campo primeiro.'); return; }
+            let obj;
+            try { obj = JSON.parse(txt); } catch (e) { alert('O texto colado não é um JSON válido: ' + e.message); return; }
+            if (!confirm('Enviar estes dados para o Firebase? Vai mesclar com o que já existe.')) return;
+            const limpo = JSON.parse(JSON.stringify(obj));
+            dbRef.update(limpo).then(() => {
+                alert('SUCESSO! Dados enviados ao Firebase. Recarregue o site principal para ver.');
                 location.reload();
             }).catch(err => alert('Erro ao enviar: ' + err.message));
         }
