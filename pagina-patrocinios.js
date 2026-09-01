@@ -133,5 +133,57 @@ function renderizarPagina() {
     }
 }
 
+function exportarPatrocinadoresPDF() {
+    const patrs = dados.patrocinadores || [];
+    if (patrs.length === 0) { alert('Nenhum patrocinador cadastrado'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    doc.setFontSize(16); doc.setTextColor(91, 192, 235);
+    doc.text('LISTA DE PATROCINADORES', pageW / 2, y, { align: 'center' }); y += 8;
+    doc.setFontSize(12); doc.setTextColor(0);
+    doc.text('Festa da Padroeira - Edição 2026', pageW / 2, y, { align: 'center' }); y += 6;
+    doc.text('09, 10, 11 e 12 de Outubro', pageW / 2, y, { align: 'center' }); y += 12;
+
+    const TIPOS = { dinheiro: 'Dinheiro', servico: 'Serviço', produto: 'Produto' };
+    const lista = [...patrs].sort((a,b) => a.nome.localeCompare(b.nome));
+
+    doc.autoTable({
+        startY: y, theme: 'grid',
+        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255] },
+        head: [['Patrocinador', 'Tipo', 'Descrição', 'Valor', 'Status']],
+        body: lista.map(p => [
+            p.nome, TIPOS[p.tipo] || 'Dinheiro', p.desc || '-',
+            p.valor > 0 ? 'R$ ' + fmt(p.valor) : '-',
+            p.recebido ? 'Recebido' : 'Pendente'
+        ])
+    });
+    y = doc.lastAutoTable.finalY + 8;
+    const tGeral = lista.reduce((s,p) => s + (p.valor||0), 0);
+    const rec = lista.filter(p => p.recebido).reduce((s,p) => s + (p.valor||0), 0);
+    doc.setFontSize(9); doc.setTextColor(80);
+    doc.text(`Total: ${lista.length} patrocinadores | Valor total: R$ ${fmt(tGeral)} | Recebido: R$ ${fmt(rec)} | Pendente: R$ ${fmt(tGeral - rec)}`, 14, y);
+    doc.save('patrocinadores_padroeira.pdf');
+    mostrarToast('📄 PDF exportado!');
+}
+
+function exportarPatrocinadoresCSV() {
+    const patrs = dados.patrocinadores || [];
+    if (patrs.length === 0) { alert('Nenhum patrocinador cadastrado'); return; }
+    const TIPOS = { dinheiro: 'Dinheiro', servico: 'Serviço', produto: 'Produto' };
+    let csv = 'Patrocinador;Tipo;Descrição;Valor;Status;Observação\n';
+    [...patrs].sort((a,b) => a.nome.localeCompare(b.nome)).forEach(p => {
+        csv += `${p.nome};${TIPOS[p.tipo]||'Dinheiro'};${p.desc||''};${p.valor > 0 ? fmt(p.valor) : ''};${p.recebido ? 'Recebido' : 'Pendente'};${p.obs||''}\n`;
+    });
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'patrocinadores_padroeira.csv';
+    link.click();
+    mostrarToast('📥 CSV exportado!');
+}
+
 iniciarStatusFirebase();
 iniciarSync();

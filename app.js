@@ -826,16 +826,18 @@ function atualizarResumoGeral() {
         totalItens += vendas.reduce((s, v) => s + v.qtd, 0);
     });
 
-    const totalPatrocinadores = dados.patrocinadores.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s, p) => s + p.valor, 0);
-    const totalDespesasCompra = dados.despesas.filter(d => !d.doacao).reduce((s, d) => s + d.valor, 0);
-    const totalDoacoes = dados.despesas.filter(d => d.doacao).reduce((s, d) => s + d.valor, 0);
-    const totalDoacoesEntrada = (dados.doacoesEntrada || []).reduce((s, d) => s + d.valor, 0);
+    const totalPatrocinadores = dados.patrocinadores.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s, p) => s + (p.valor||0), 0);
+    const totalPatrServico = dados.patrocinadores.filter(p => p.tipo === 'servico').reduce((s, p) => s + (p.valor||0), 0);
+    const totalPatrProduto = dados.patrocinadores.filter(p => p.tipo === 'produto').reduce((s, p) => s + (p.valor||0), 0);
+    const totalDespesasCompra = dados.despesas.filter(d => !d.doacao).reduce((s, d) => s + (d.valor||0), 0);
+    const totalDoacoes = dados.despesas.filter(d => d.doacao).reduce((s, d) => s + (d.valor||0), 0);
+    const totalDoacoesEntrada = (dados.doacoesEntrada || []).reduce((s, d) => s + (d.valor||0), 0);
 
     const receita = totalVendas + totalPatrocinadores + totalDoacoesEntrada;
     const saldo = receita - totalDespesasCompra;
 
     document.getElementById('receitaTotal').textContent = R$(receita);
-    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patrocínios: ${R$(totalPatrocinadores)} | Doações: ${R$(totalDoacoesEntrada)}`;
+    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patroc. $: ${R$(totalPatrocinadores)} | Serv/Prod: ${R$(totalPatrServico + totalPatrProduto)} | Doações: ${R$(totalDoacoesEntrada)}`;
     document.getElementById('gastoTotal').textContent = R$(totalDespesasCompra);
     document.getElementById('gastoDetalhe').textContent = `Doações em produtos: ${R$(totalDoacoes)} (não conta como gasto)`;
 
@@ -843,6 +845,64 @@ function atualizarResumoGeral() {
     saldoEl.textContent = R$(saldo);
     saldoEl.style.color = saldo >= 0 ? '#66bb6a' : '#ef5350';
     document.getElementById('saldoDetalhe').textContent = `${totalItens} itens vendidos no total`;
+}
+
+function exportarPatrocinadoresPDF() {
+    const patrs = dados.patrocinadores || [];
+    if (patrs.length === 0) { alert('Nenhum patrocinador cadastrado'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 20;
+    const cfg = getConfigEvento();
+
+    doc.setFontSize(16); doc.setTextColor(91, 192, 235);
+    doc.text('LISTA DE PATROCINADORES', pageW / 2, y, { align: 'center' }); y += 8;
+    doc.setFontSize(12); doc.setTextColor(0);
+    doc.text(`${cfg.nomeEvento} - Edição ${cfg.edicao}`, pageW / 2, y, { align: 'center' }); y += 6;
+    doc.text(cfg.datas, pageW / 2, y, { align: 'center' }); y += 12;
+
+    const TIPOS = { dinheiro: 'Dinheiro', servico: 'Serviço', produto: 'Produto' };
+    const lista = [...patrs].sort((a,b) => a.nome.localeCompare(b.nome));
+
+    doc.autoTable({
+        startY: y, theme: 'grid',
+        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255] },
+        head: [['Patrocinador', 'Tipo', 'Descrição', 'Valor', 'Status']],
+        body: lista.map(p => [
+            p.nome,
+            TIPOS[p.tipo] || 'Dinheiro',
+            p.desc || '-',
+            p.valor > 0 ? 'R$ ' + fmt(p.valor) : '-',
+            p.recebido ? 'Recebido' : 'Pendente'
+        ])
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    const totalGeral = lista.reduce((s,p) => s + (p.valor||0), 0);
+    const totalDinheiro = lista.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s,p) => s + (p.valor||0), 0);
+    const recebido = lista.filter(p => p.recebido).reduce((s,p) => s + (p.valor||0), 0);
+    doc.setFontSize(9); doc.setTextColor(80);
+    doc.text(`Total: ${lista.length} patrocinadores | Valor total: R$ ${fmt(totalGeral)} | Dinheiro: R$ ${fmt(totalDinheiro)} | Recebido: R$ ${fmt(recebido)} | Pendente: R$ ${fmt(totalGeral - recebido)}`, 14, y);
+
+    doc.save('patrocinadores_padroeira.pdf');
+    mostrarToast('📄 Lista de patrocinadores exportada!');
+}
+
+function exportarPatrocinadoresCSV() {
+    const patrs = dados.patrocinadores || [];
+    if (patrs.length === 0) { alert('Nenhum patrocinador cadastrado'); return; }
+    const TIPOS = { dinheiro: 'Dinheiro', servico: 'Serviço', produto: 'Produto' };
+    let csv = 'Patrocinador;Tipo;Descrição;Valor;Status;Observação\n';
+    [...patrs].sort((a,b) => a.nome.localeCompare(b.nome)).forEach(p => {
+        csv += `${p.nome};${TIPOS[p.tipo]||'Dinheiro'};${p.desc||''};${p.valor > 0 ? fmt(p.valor) : ''};${p.recebido ? 'Recebido' : 'Pendente'};${p.obs||''}\n`;
+    });
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'patrocinadores_padroeira.csv';
+    link.click();
+    mostrarToast('📥 CSV exportado!');
 }
 
 // ===== DASHBOARD =====

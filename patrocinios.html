@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patrocinadores - Festa da Padroeira 2026</title>
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -55,6 +57,10 @@
                 </div>
             </div>
 
+            <div class="export-btns" style="padding:10px 0">
+                <button class="btn-export" onclick="exportarPatrocinadoresPDF()">📄 Exportar PDF</button>
+                <button class="btn-export" onclick="exportarPatrocinadoresCSV()">📥 Exportar CSV</button>
+            </div>
             <div class="filtros-despesa">
                 <input type="text" id="buscaPatrocinador" placeholder="🔍 Buscar patrocinador..." oninput="renderizarPagina()" style="padding:6px 12px;border-radius:15px;border:1px solid var(--cor-madeira-clara);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.82rem;min-width:200px;">
                 <button class="filtro-btn active" data-ordpatr="alfa" onclick="ordenarPatrocinadores('alfa')">A-Z</button>
