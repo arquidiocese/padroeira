@@ -1322,7 +1322,7 @@ function salvarEdicao() {
     if (!edicaoAtual) return;
 
     if (edicaoAtual.tipo === 'venda') {
-        const item = dados[edicaoAtual.barraca].vendas.find(v => v.id === edicaoAtual.id);
+        const item = dados[edicaoAtual.barraca].vendas.find(v => String(v.id) === String(edicaoAtual.id));
         if (item) {
             item.produto = document.getElementById('editProduto').value.trim() || item.produto;
             item.qtd = parseInt(document.getElementById('editQtd').value) || item.qtd;
@@ -1331,7 +1331,7 @@ function salvarEdicao() {
             item.total = item.preco * item.qtd;
         }
     } else if (edicaoAtual.tipo === 'despesa') {
-        const item = dados.despesas.find(d => d.id === edicaoAtual.id);
+        const item = dados.despesas.find(d => String(d.id) === String(edicaoAtual.id));
         if (item) {
             item.desc = document.getElementById('editDesc').value.trim() || item.desc;
             item.valor = parseFloat(document.getElementById('editValor').value) || item.valor;
@@ -1340,7 +1340,7 @@ function salvarEdicao() {
             item.obs = document.getElementById('editObs').value.trim();
         }
     } else if (edicaoAtual.tipo === 'patrocinio') {
-        const item = dados.patrocinadores.find(p => p.id === edicaoAtual.id);
+        const item = dados.patrocinadores.find(p => String(p.id) === String(edicaoAtual.id));
         if (item) {
             item.nome = document.getElementById('editNome').value.trim() || item.nome;
             item.tipo = document.getElementById('editTipo').value;
@@ -1352,7 +1352,7 @@ function salvarEdicao() {
         }
     } else if (edicaoAtual.tipo === 'doador') {
         if (!dados.doadores) dados.doadores = [];
-        const item = dados.doadores.find(d => d.id === edicaoAtual.id);
+        const item = dados.doadores.find(d => String(d.id) === String(edicaoAtual.id));
         if (item) {
             item.nome = document.getElementById('editNome').value.trim() || item.nome;
             item.item = document.getElementById('editItem').value.trim() || item.item;
@@ -1367,8 +1367,8 @@ function salvarEdicao() {
     const mapaCampo = { despesa: 'despesas', patrocinio: 'patrocinadores', doador: 'doadores' };
     const campo = mapaCampo[edicaoAtual.tipo];
     if (campo && typeof fbAtualizarItem === 'function') {
-        const item = dados[campo].find(x => x.id === edicaoAtual.id);
-        if (item) fbAtualizarItem(campo, edicaoAtual.id, item);
+        const item = dados[campo].find(x => String(x.id) === String(edicaoAtual.id));
+        if (item) fbAtualizarItem(campo, item.id, item); // usa item.id real, não edicaoAtual.id
     } else {
         // venda (barraca) ou fallback
         if (typeof salvarFirebase === 'function') salvarFirebase(dados);
