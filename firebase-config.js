@@ -53,6 +53,24 @@ function escutarMudancas(callback) {
 // usando o id do item como chave. Dois dispositivos adicionando ao mesmo
 // tempo NÃO se sobrescrevem, pois cada item tem sua própria chave.
 
+// Reescreve o campo INTEIRO no Firebase como objeto chaveado pelo id de cada item.
+// Isso corrige o problema de itens antigos que ficaram salvos por POSIÇÃO (0,1,2)
+// em vez de por id — garantindo que editar/remover sempre acerte o registro certo.
+// Recebe a lista atual (array) do campo, já com a alteração aplicada localmente.
+function fbGravarCampo(campo, lista) {
+    const obj = {};
+    (lista || []).forEach(item => {
+        if (item && item.id != null) {
+            obj[String(item.id)] = JSON.parse(JSON.stringify(item));
+        }
+    });
+    // set() substitui o campo inteiro pela versão chaveada por id (sem duplicatas de posição)
+    return dbRef.child(campo).set(obj).catch(err => {
+        console.error('Erro ao gravar campo no Firebase:', err);
+        if (typeof mostrarToast === 'function') mostrarToast('⚠️ ERRO: dados NÃO salvos no servidor. Verifique a conexão.', 'error');
+    });
+}
+
 function fbAdicionarItem(campo, item) {
     const limpo = JSON.parse(JSON.stringify(item));
     return dbRef.child(campo).child(String(item.id)).set(limpo).catch(err => {

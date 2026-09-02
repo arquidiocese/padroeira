@@ -182,7 +182,7 @@ function removerItem(campo, id) {
     if (!dados[campo]) dados[campo] = [];
     dados[campo] = dados[campo].filter(x => String(x.id) !== String(id));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbRemoverItem === 'function') fbRemoverItem(campo, id);
+    if (typeof fbGravarCampo === 'function') fbGravarCampo(campo, dados[campo]);
     else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
 }
 
@@ -192,7 +192,7 @@ function atualizarItem(campo, id, novosCampos) {
     if (!item) return;
     Object.assign(item, novosCampos);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, item.id, item);
+    if (typeof fbGravarCampo === 'function') fbGravarCampo(campo, dados[campo]);
     else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
 }
 
@@ -1362,13 +1362,12 @@ function salvarEdicao() {
         }
     }
 
-    // Salvar: campos de risco vão item-a-item; vendas (barraca) vão com salvarDados
+    // Salvar: campos de risco regravam o campo inteiro chaveado por id; vendas vão com salvarDados
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
     const mapaCampo = { despesa: 'despesas', patrocinio: 'patrocinadores', doador: 'doadores' };
     const campo = mapaCampo[edicaoAtual.tipo];
-    if (campo && typeof fbAtualizarItem === 'function') {
-        const item = dados[campo].find(x => String(x.id) === String(edicaoAtual.id));
-        if (item) fbAtualizarItem(campo, item.id, item); // usa item.id real, não edicaoAtual.id
+    if (campo && typeof fbGravarCampo === 'function') {
+        fbGravarCampo(campo, dados[campo]); // regrava campo inteiro por id (elimina duplicata de posição)
     } else {
         // venda (barraca) ou fallback
         if (typeof salvarFirebase === 'function') salvarFirebase(dados);
