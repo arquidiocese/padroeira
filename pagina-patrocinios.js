@@ -129,6 +129,9 @@ function renderizarPagina() {
             <div class="item neutro"><span>Qtd</span><strong>${todos.length}</strong></div>
         `;
     }
+
+    const contador = document.getElementById('contadorRegistros');
+    if (contador) contador.textContent = todos.length > 0 ? `(${todos.length} cadastrado${todos.length>1?'s':''})` : '';
 }
 
 function exportarPatrocinadoresPDF() {

@@ -95,9 +95,8 @@ function cadastrarCaixa() {
         }
     }
 
-    if (!dados.caixas) dados.caixas = [];
-    dados.caixas.push({ id: Date.now(), nome, telefone, tipo, dias });
-    salvarDados(dados);
+    if (typeof indicarSalvando === 'function') indicarSalvando();
+    adicionarItem('caixas', { id: Date.now(), nome, telefone, tipo, dias });
 
     document.getElementById('caixaNome').value = '';
     document.getElementById('caixaTelefone').value = '';
@@ -111,8 +110,7 @@ function cadastrarCaixa() {
 
 function removerCaixa(id) {
     if (!confirm('Remover esta pessoa dos caixas?')) return;
-    dados.caixas = (dados.caixas || []).filter(c => c.id !== id);
-    salvarDados(dados);
+    removerItem('caixas', id);
     renderizarPagina();
 }
 
@@ -141,15 +139,17 @@ function editarCaixa(id) {
 function salvarEdicaoCaixa() {
     const item = (dados.caixas || []).find(c => c.id === edicaoCaixaId);
     if (!item) { fecharModal(); return; }
-    item.nome = document.getElementById('editNome').value.trim() || item.nome;
-    item.telefone = document.getElementById('editTelefone').value.trim();
-    item.tipo = document.getElementById('editTipoCaixa').value;
-    item.dias = [];
-    if (document.getElementById('editCaixaDia1').checked) item.dias.push(1);
-    if (document.getElementById('editCaixaDia2').checked) item.dias.push(2);
-    if (document.getElementById('editCaixaDia3').checked) item.dias.push(3);
-    if (document.getElementById('editCaixaDia4').checked) item.dias.push(4);
-    salvarDados(dados);
+    const dias = [];
+    if (document.getElementById('editCaixaDia1').checked) dias.push(1);
+    if (document.getElementById('editCaixaDia2').checked) dias.push(2);
+    if (document.getElementById('editCaixaDia3').checked) dias.push(3);
+    if (document.getElementById('editCaixaDia4').checked) dias.push(4);
+    atualizarItem('caixas', edicaoCaixaId, {
+        nome: document.getElementById('editNome').value.trim() || item.nome,
+        telefone: document.getElementById('editTelefone').value.trim(),
+        tipo: document.getElementById('editTipoCaixa').value,
+        dias: dias
+    });
     fecharModal();
     renderizarPagina();
 }

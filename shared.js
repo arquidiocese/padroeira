@@ -128,16 +128,20 @@ function adicionarItem(campo, item) {
     if (!dados[campo]) dados[campo] = [];
     dados[campo].push(item);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbAdicionarItem === 'function') fbAdicionarItem(campo, item);
-    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+    indicarSalvando();
+    const p = (typeof fbAdicionarItem === 'function') ? fbAdicionarItem(campo, item) : Promise.resolve();
+    if (p && p.then) p.then(indicarSalvo);
+    else indicarSalvo();
 }
 
 function removerItem(campo, id) {
     if (!dados[campo]) dados[campo] = [];
     dados[campo] = dados[campo].filter(x => x.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbRemoverItem === 'function') fbRemoverItem(campo, id);
-    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+    indicarSalvando();
+    const p = (typeof fbRemoverItem === 'function') ? fbRemoverItem(campo, id) : Promise.resolve();
+    if (p && p.then) p.then(indicarSalvo);
+    else indicarSalvo();
 }
 
 function atualizarItem(campo, id, novosCampos) {
@@ -146,8 +150,24 @@ function atualizarItem(campo, id, novosCampos) {
     if (!item) return;
     Object.assign(item, novosCampos);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, id, item);
-    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+    indicarSalvando();
+    const p = (typeof fbAtualizarItem === 'function') ? fbAtualizarItem(campo, id, item) : Promise.resolve();
+    if (p && p.then) p.then(indicarSalvo);
+    else indicarSalvo();
+}
+
+// ===== INDICADOR DE SALVAMENTO =====
+function indicarSalvando() {
+    const el = document.getElementById('saveStatus');
+    if (el) { el.textContent = '⏳ Salvando...'; el.style.color = '#ffb300'; }
+}
+function indicarSalvo() {
+    const el = document.getElementById('saveStatus');
+    if (el) {
+        el.textContent = '✓ Salvo';
+        el.style.color = '#81c784';
+        setTimeout(() => { if (el.textContent === '✓ Salvo') el.textContent = ''; }, 2500);
+    }
 }
 
 // Objeto global de dados usado pelas páginas
@@ -202,6 +222,25 @@ function iniciarStatusFirebase() {
                     ? '<span class="status-dot online"></span> Online'
                     : '<span class="status-dot offline"></span> Offline';
             }
+        });
+    }
+}
+
+// Recarregar dados manualmente do Firebase
+function atualizarDados() {
+    indicarSalvando();
+    const el = document.getElementById('saveStatus');
+    if (el) el.textContent = '🔄 Atualizando...';
+    if (typeof carregarFirebase === 'function') {
+        carregarFirebase().then(dadosFirebase => {
+            if (dadosFirebase) {
+                dados = normalizarDados(dadosFirebase);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+            }
+            if (typeof renderizarPagina === 'function') renderizarPagina();
+            if (el) { el.textContent = '✓ Atualizado'; el.style.color = '#81c784'; setTimeout(() => { el.textContent = ''; }, 2500); }
+        }).catch(() => {
+            if (el) { el.textContent = '⚠️ Erro ao atualizar'; el.style.color = '#ef5350'; }
         });
     }
 }

@@ -40,6 +40,9 @@ function renderizarPagina() {
         if (valorAtual) select.value = valorAtual;
     }
 
+    const contador = document.getElementById('contadorRegistros');
+    if (contador) contador.textContent = dados.necessidades.length > 0 ? `(${dados.necessidades.length} item${dados.necessidades.length>1?'ns':''})` : '';
+
     const container = document.getElementById('listaNecessidades');
     if (!container) return;
 
