@@ -142,6 +142,11 @@ function normalizarDados(d) {
     });
     if (!d.configCaixas) d.configCaixas = { fixos: 0, volantes: 0 };
 
+    // Garantir que todos os ids sejam NÚMERO (Firebase converte chaves para string)
+    ['patrocinadores','despesas','doadores','necessidades','doacoesEntrada','caixas'].forEach(campo => {
+        if (Array.isArray(d[campo])) d[campo].forEach(x => { if (x && x.id != null) x.id = Number(x.id); });
+    });
+
     return d;
 }
 
@@ -175,7 +180,7 @@ function adicionarItem(campo, item) {
 
 function removerItem(campo, id) {
     if (!dados[campo]) dados[campo] = [];
-    dados[campo] = dados[campo].filter(x => x.id !== id);
+    dados[campo] = dados[campo].filter(x => String(x.id) !== String(id));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
     if (typeof fbRemoverItem === 'function') fbRemoverItem(campo, id);
     else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
@@ -183,11 +188,11 @@ function removerItem(campo, id) {
 
 function atualizarItem(campo, id, novosCampos) {
     if (!dados[campo]) dados[campo] = [];
-    const item = dados[campo].find(x => x.id === id);
+    const item = dados[campo].find(x => String(x.id) === String(id));
     if (!item) return;
     Object.assign(item, novosCampos);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
-    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, id, item);
+    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, item.id, item);
     else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
 }
 
