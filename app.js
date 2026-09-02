@@ -702,10 +702,9 @@ function renderizarPatrocinadores() {
         let detHtml = '';
         todos.sort((a,b) => a.nome.localeCompare(b.nome)).forEach(p => {
             const doacoes = (dados.despesas||[]).filter(d => d.doacao && d.patrocinadorId == p.id);
-            if (doacoes.length === 0 && !p.desc) return;
+            if (doacoes.length === 0) return; // só mostra se tiver despesas vinculadas
             detHtml += `<div class="patr-detalhe-card">
                 <div class="patr-detalhe-header">${p.nome} <small>${{dinheiro:'💵',servico:'🔧',produto:'📦'}[p.tipo]||'💵'}</small></div>`;
-            if (p.desc) detHtml += `<div class="patr-detalhe-desc">${p.desc}</div>`;
             if (doacoes.length > 0) {
                 detHtml += '<div class="patr-detalhe-itens">';
                 doacoes.forEach(d => {
@@ -867,13 +866,22 @@ function exportarPatrocinadoresPDF() {
 
     doc.autoTable({
         startY: y, theme: 'grid',
-        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255] },
+        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        styles: { overflow: 'linebreak', cellPadding: 3 },
+        columnStyles: {
+            0: { cellWidth: 55 },
+            1: { cellWidth: 22 },
+            2: { cellWidth: 60 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 }
+        },
         head: [['Patrocinador', 'Tipo', 'Descrição', 'Valor', 'Status']],
         body: lista.map(p => [
-            p.nome,
+            p.nome || '-',
             TIPOS[p.tipo] || 'Dinheiro',
             p.desc || '-',
-            p.valor > 0 ? 'R$ ' + fmt(p.valor) : '-',
+            (p.valor||0) > 0 ? 'R$ ' + fmt(p.valor||0) : '-',
             p.recebido ? 'Recebido' : 'Pendente'
         ])
     });
