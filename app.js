@@ -445,7 +445,7 @@ function removerDespesa(id) {
 }
 
 function togglePagoDespesa(id) {
-    const item = dados.despesas.find(d => d.id === id);
+    const item = dados.despesas.find(d => String(d.id) === String(id));
     if (item) { atualizarItem('despesas', id, { pago: !item.pago }); renderizarTudo(); }
 }
 
@@ -627,7 +627,7 @@ function removerPatrocinio(id) {
 }
 
 function toggleRecebido(id) {
-    const item = dados.patrocinadores.find(p => p.id === id);
+    const item = dados.patrocinadores.find(p => String(p.id) === String(id));
     if (item) { atualizarItem('patrocinadores', id, { recebido: !item.recebido }); renderizarTudo(); }
 }
 
@@ -756,7 +756,7 @@ function renderizarPatrocinadores() {
 
 // ===== RENDERIZAR BARRACA (só vendas) =====
 function removerVenda(barraca, id) {
-    dados[barraca].vendas = dados[barraca].vendas.filter(v => v.id !== id);
+    dados[barraca].vendas = dados[barraca].vendas.filter(v => String(v.id) !== String(id));
     salvarDados(dados); renderizarTudo();
 }
 
@@ -1256,7 +1256,7 @@ function fecharModal() {
 }
 
 function editarVenda(barraca, id) {
-    const item = dados[barraca].vendas.find(v => v.id === id);
+    const item = dados[barraca].vendas.find(v => String(v.id) === String(id));
     if (!item) return;
     edicaoAtual = { tipo: 'venda', barraca, id };
 
@@ -1277,7 +1277,7 @@ function editarVenda(barraca, id) {
 }
 
 function editarDespesa(id) {
-    const item = dados.despesas.find(d => d.id === id);
+    const item = dados.despesas.find(d => String(d.id) === String(id));
     if (!item) return;
     edicaoAtual = { tipo: 'despesa', id };
 
@@ -1292,7 +1292,7 @@ function editarDespesa(id) {
 }
 
 function editarPatrocinio(id) {
-    const item = dados.patrocinadores.find(p => p.id === id);
+    const item = dados.patrocinadores.find(p => String(p.id) === String(id));
     if (!item) return;
     edicaoAtual = { tipo: 'patrocinio', id };
 
@@ -2782,9 +2782,7 @@ function cadastrarCaixa() {
         }
     }
 
-    if (!dados.caixas) dados.caixas = [];
-    dados.caixas.push({ id: Date.now(), nome, telefone, tipo, dias });
-    salvarDados(dados);
+    adicionarItem('caixas', { id: Date.now(), nome, telefone, tipo, dias });
 
     // Limpar e resetar form
     document.getElementById('caixaNome').value = '';
@@ -2801,14 +2799,13 @@ function cadastrarCaixa() {
 
 function removerCaixa(id) {
     if (!confirm('Remover esta pessoa dos caixas?')) return;
-    dados.caixas = (dados.caixas || []).filter(c => c.id !== id);
-    salvarDados(dados);
+    removerItem('caixas', id);
     renderizarCaixas();
     atualizarDiasDisponiveis();
 }
 
 function editarCaixa(id) {
-    const item = (dados.caixas || []).find(c => c.id === id);
+    const item = (dados.caixas || []).find(c => String(c.id) === String(id));
     if (!item) return;
     edicaoAtual = { tipo: 'caixa', id };
 
@@ -2834,7 +2831,7 @@ function editarCaixa(id) {
 const _salvarEdicaoOriginal = salvarEdicao;
 salvarEdicao = function() {
     if (edicaoAtual && edicaoAtual.tipo === 'caixa') {
-        const item = (dados.caixas || []).find(c => c.id === edicaoAtual.id);
+        const item = (dados.caixas || []).find(c => String(c.id) === String(edicaoAtual.id));
         if (item) {
             const novoNome = document.getElementById('editNome').value.trim() || item.nome;
             const novoTelefone = document.getElementById('editTelefone').value.trim();
@@ -2852,7 +2849,7 @@ salvarEdicao = function() {
                 const diasLotados = [];
                 novosDias.forEach(dia => {
                     // Contar excluindo a própria pessoa
-                    const jaCadastrados = (dados.caixas || []).filter(c => c.id !== item.id && c.tipo === novoTipo && c.dias.includes(dia)).length;
+                    const jaCadastrados = (dados.caixas || []).filter(c => String(c.id) !== String(item.id) && c.tipo === novoTipo && c.dias.includes(dia)).length;
                     if (jaCadastrados >= limite) {
                         diasLotados.push(DIAS_CAIXAS[dia].split(' ')[0]);
                     }
@@ -2863,12 +2860,10 @@ salvarEdicao = function() {
                 }
             }
 
-            item.nome = novoNome;
-            item.telefone = novoTelefone;
-            item.tipo = novoTipo;
-            item.dias = novosDias;
+            atualizarItem('caixas', edicaoAtual.id, {
+                nome: novoNome, telefone: novoTelefone, tipo: novoTipo, dias: novosDias
+            });
         }
-        salvarDados(dados);
         fecharModal();
         renderizarCaixas();
         atualizarDiasDisponiveis();
@@ -3091,7 +3086,7 @@ function removerDoacaoEntrada(id) {
 
 function toggleDoacaoRecebida(id) {
     if (!dados.doacoesEntrada) return;
-    const item = dados.doacoesEntrada.find(d => d.id === id);
+    const item = dados.doacoesEntrada.find(d => String(d.id) === String(id));
     if (item) { atualizarItem('doacoesEntrada', id, { recebido: !item.recebido }); renderizarDoacoesEntrada(); renderizarTudo(); }
 }
 
@@ -3158,7 +3153,7 @@ function removerNecessidade(id) {
 
 function toggleConseguido(id) {
     if (!dados.necessidades) return;
-    const item = dados.necessidades.find(n => n.id === id);
+    const item = dados.necessidades.find(n => String(n.id) === String(id));
     if (item) { atualizarItem('necessidades', id, { conseguido: !item.conseguido }); renderizarNecessidades(); }
 }
 
@@ -3365,7 +3360,7 @@ function renderizarDoadores() {
 
 function editarDoador(id) {
     if (!dados.doadores) return;
-    const item = dados.doadores.find(d => d.id === id);
+    const item = dados.doadores.find(d => String(d.id) === String(id));
     if (!item) return;
     edicaoAtual = { tipo: 'doador', id };
 

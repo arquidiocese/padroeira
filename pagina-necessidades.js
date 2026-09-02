@@ -22,7 +22,7 @@ function removerNecessidade(id) {
 }
 
 function toggleConseguido(id) {
-    const item = (dados.necessidades || []).find(n => n.id === id);
+    const item = (dados.necessidades || []).find(n => String(n.id) === String(id));
     if (item) { atualizarItem('necessidades', id, { conseguido: !item.conseguido }); renderizarPagina(); }
 }
 

@@ -21,11 +21,18 @@ const dbRef = db.ref('padroeira');
 // ===== FUNÇÕES DE SINCRONIZAÇÃO =====
 
 // Salvar dados no Firebase
-// Usa update() por campo de topo em vez de set() no nó inteiro,
-// para reduzir o risco de um dispositivo sobrescrever dados de outro.
+// Usa update() por campo de topo em vez de set() no nó inteiro.
+// IMPORTANTE: NÃO reescreve os campos geridos item-a-item (patrocinadores, despesas,
+// doacoesEntrada, doadores, necessidades, caixas) — esses só são gravados pelas funções
+// fbAdicionarItem/fbGravarCampo, para não desfazer o formato chaveado por id (que evita
+// duplicação e perda). Aqui gravamos só vendas de barraca, config e meta.
+const CAMPOS_ITEM_A_ITEM_FB = ['patrocinadores', 'despesas', 'doacoesEntrada', 'doadores', 'necessidades', 'caixas'];
+
 function salvarFirebase(dados) {
     // Converter para JSON e voltar para limpar undefined/funções
     const limpo = JSON.parse(JSON.stringify(dados));
+    // Remove os campos item-a-item para não sobrescrevê-los como array de posição
+    CAMPOS_ITEM_A_ITEM_FB.forEach(campo => { delete limpo[campo]; });
     dbRef.update(limpo).catch(err => {
         console.error('Erro ao salvar no Firebase:', err);
         // Avisa o usuário quando a gravação falha (ex: regras expiradas / sem permissão)

@@ -115,7 +115,7 @@ function removerCaixa(id) {
 }
 
 function editarCaixa(id) {
-    const item = (dados.caixas || []).find(c => c.id === id);
+    const item = (dados.caixas || []).find(c => String(c.id) === String(id));
     if (!item) return;
     edicaoCaixaId = id;
     const diasChecks = [1,2,3,4].map(d =>
@@ -137,7 +137,7 @@ function editarCaixa(id) {
 }
 
 function salvarEdicaoCaixa() {
-    const item = (dados.caixas || []).find(c => c.id === edicaoCaixaId);
+    const item = (dados.caixas || []).find(c => String(c.id) === String(edicaoCaixaId));
     if (!item) { fecharModal(); return; }
     const dias = [];
     if (document.getElementById('editCaixaDia1').checked) dias.push(1);

@@ -34,12 +34,12 @@ function removerDoacaoEntrada(id) {
 }
 
 function toggleDoacaoRecebida(id) {
-    const item = (dados.doacoesEntrada || []).find(d => d.id === id);
+    const item = (dados.doacoesEntrada || []).find(d => String(d.id) === String(id));
     if (item) { atualizarItem('doacoesEntrada', id, { recebido: !item.recebido }); renderizarPagina(); }
 }
 
 function editarDoacaoEntrada(id) {
-    const item = (dados.doacoesEntrada || []).find(d => d.id === id);
+    const item = (dados.doacoesEntrada || []).find(d => String(d.id) === String(id));
     if (!item) return;
     edicaoDoacao = { tipo: 'dinheiro', id };
     const tipoSel = (t) => item.tipo === t ? 'selected' : '';
@@ -85,7 +85,7 @@ function removerDoador(id) {
 }
 
 function editarDoador(id) {
-    const item = (dados.doadores || []).find(d => d.id === id);
+    const item = (dados.doadores || []).find(d => String(d.id) === String(id));
     if (!item) return;
     edicaoDoacao = { tipo: 'doador', id };
     document.getElementById('modalConteudo').innerHTML = `
@@ -101,7 +101,7 @@ function editarDoador(id) {
 function salvarEdicaoDoacoes() {
     if (!edicaoDoacao) { fecharModal(); return; }
     if (edicaoDoacao.tipo === 'dinheiro') {
-        const item = (dados.doacoesEntrada || []).find(d => d.id === edicaoDoacao.id);
+        const item = (dados.doacoesEntrada || []).find(d => String(d.id) === String(edicaoDoacao.id));
         if (item) {
             const v = document.getElementById('editValor').value;
             atualizarItem('doacoesEntrada', edicaoDoacao.id, {
@@ -113,7 +113,7 @@ function salvarEdicaoDoacoes() {
             });
         }
     } else if (edicaoDoacao.tipo === 'doador') {
-        const item = (dados.doadores || []).find(d => d.id === edicaoDoacao.id);
+        const item = (dados.doadores || []).find(d => String(d.id) === String(edicaoDoacao.id));
         if (item) {
             const v = document.getElementById('editValor').value;
             atualizarItem('doadores', edicaoDoacao.id, {

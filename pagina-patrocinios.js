@@ -29,7 +29,7 @@ function removerPatrocinio(id) {
 }
 
 function toggleRecebido(id) {
-    const item = (dados.patrocinadores || []).find(p => p.id === id);
+    const item = (dados.patrocinadores || []).find(p => String(p.id) === String(id));
     if (item) { atualizarItem('patrocinadores', id, { recebido: !item.recebido }); renderizarPagina(); }
 }
 
@@ -42,7 +42,7 @@ function ordenarPatrocinadores(tipo) {
 }
 
 function editarPatrocinio(id) {
-    const item = (dados.patrocinadores || []).find(p => p.id === id);
+    const item = (dados.patrocinadores || []).find(p => String(p.id) === String(id));
     if (!item) return;
     edicaoPatrId = id;
     const tipoSel = (t) => item.tipo === t ? 'selected' : '';
@@ -63,7 +63,7 @@ function editarPatrocinio(id) {
 }
 
 function salvarEdicaoPatrocinio() {
-    const item = (dados.patrocinadores || []).find(p => p.id === edicaoPatrId);
+    const item = (dados.patrocinadores || []).find(p => String(p.id) === String(edicaoPatrId));
     if (!item) { fecharModal(); return; }
     const v = document.getElementById('editValor').value;
     atualizarItem('patrocinadores', edicaoPatrId, {
