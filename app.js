@@ -28,7 +28,8 @@ const DIAS_FESTA = {
 
 // ===== FORMATAÇÃO BRASILEIRA =====
 function fmt(valor) {
-    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Number(valor);
+    return (isNaN(n) ? 0 : n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function R$(valor) {
     return 'R$ ' + fmt(valor);
@@ -159,6 +160,35 @@ function salvarDados(d) {
     if (typeof salvarFirebase === 'function') {
         salvarFirebase(d);
     }
+}
+
+// ===== OPERAÇÕES ITEM-A-ITEM (seguras para uso simultâneo) =====
+// Campos que várias pessoas podem lançar ao mesmo tempo. Grava/remove/atualiza
+// só o item específico no Firebase, evitando sobrescrita entre dispositivos.
+function adicionarItem(campo, item) {
+    if (!dados[campo]) dados[campo] = [];
+    dados[campo].push(item);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbAdicionarItem === 'function') fbAdicionarItem(campo, item);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+}
+
+function removerItem(campo, id) {
+    if (!dados[campo]) dados[campo] = [];
+    dados[campo] = dados[campo].filter(x => x.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbRemoverItem === 'function') fbRemoverItem(campo, id);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+}
+
+function atualizarItem(campo, id, novosCampos) {
+    if (!dados[campo]) dados[campo] = [];
+    const item = dados[campo].find(x => x.id === id);
+    if (!item) return;
+    Object.assign(item, novosCampos);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, id, item);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
 }
 
 let dados = carregarDados();
@@ -346,11 +376,12 @@ function finalizarNota() {
     const patrocinadorId = doacao ? (document.getElementById('patrocinadorDespesa').value || '') : '';
 
     // Lançar cada item como uma despesa separada (mesmo local/nota)
+    // Usa adicionarItem (item-a-item no Firebase) para não sobrescrever dados de outros dispositivos
     const notaId = Date.now();
     const notaItensCount = itensNotaAtual.length;
     const notaTotal = itensNotaAtual.reduce((s, i) => s + i.valor, 0);
     itensNotaAtual.forEach((item, i) => {
-        dados.despesas.push({
+        adicionarItem('despesas', {
             id: notaId + i,
             categoria,
             desc: item.desc,
@@ -367,8 +398,6 @@ function finalizarNota() {
             notaId: notaId // agrupa itens da mesma nota
         });
     });
-
-    salvarDados(dados);
 
     // Limpar tudo
     itensNotaAtual = [];
@@ -406,13 +435,13 @@ function toggleDataVencimentoCaixa() {
 }
 
 function removerDespesa(id) {
-    dados.despesas = dados.despesas.filter(d => d.id !== id);
-    salvarDados(dados); renderizarTudo();
+    removerItem('despesas', id);
+    renderizarTudo();
 }
 
 function togglePagoDespesa(id) {
     const item = dados.despesas.find(d => d.id === id);
-    if (item) { item.pago = !item.pago; salvarDados(dados); renderizarTudo(); }
+    if (item) { atualizarItem('despesas', id, { pago: !item.pago }); renderizarTudo(); }
 }
 
 const FILTRO_GRUPOS = {
@@ -577,8 +606,7 @@ function lancarPatrocinio() {
     const recebido = document.getElementById('recebidoPatrocinio').checked;
     if (!nome) { alert('Preencha o nome do patrocinador'); return; }
 
-    dados.patrocinadores.push({ id: Date.now(), nome, tipo, valor, desc, barraca, obs, recebido });
-    salvarDados(dados);
+    adicionarItem('patrocinadores', { id: Date.now(), nome, tipo, valor, desc, barraca, obs, recebido });
     document.getElementById('nomePatrocinador').value = '';
     document.getElementById('valorPatrocinio').value = '';
     document.getElementById('descPatrocinio').value = '';
@@ -589,13 +617,13 @@ function lancarPatrocinio() {
 }
 
 function removerPatrocinio(id) {
-    dados.patrocinadores = dados.patrocinadores.filter(p => p.id !== id);
-    salvarDados(dados); renderizarTudo();
+    removerItem('patrocinadores', id);
+    renderizarTudo();
 }
 
 function toggleRecebido(id) {
     const item = dados.patrocinadores.find(p => p.id === id);
-    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarTudo(); }
+    if (item) { atualizarItem('patrocinadores', id, { recebido: !item.recebido }); renderizarTudo(); }
 }
 
 let ordenacaoPatr = 'alfa';
@@ -1329,7 +1357,17 @@ function salvarEdicao() {
         }
     }
 
-    salvarDados(dados);
+    // Salvar: campos de risco vão item-a-item; vendas (barraca) vão com salvarDados
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    const mapaCampo = { despesa: 'despesas', patrocinio: 'patrocinadores', doador: 'doadores' };
+    const campo = mapaCampo[edicaoAtual.tipo];
+    if (campo && typeof fbAtualizarItem === 'function') {
+        const item = dados[campo].find(x => x.id === edicaoAtual.id);
+        if (item) fbAtualizarItem(campo, edicaoAtual.id, item);
+    } else {
+        // venda (barraca) ou fallback
+        if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+    }
     fecharModal();
     renderizarTudo();
 }
@@ -1380,11 +1418,10 @@ function gastoRapido() {
 
     if (!desc || isNaN(valor) || valor <= 0) return;
 
-    dados.despesas.push({
+    adicionarItem('despesas', {
         id: Date.now(), categoria, desc, qtd: 1, unidade: 'un',
         valor, local: '', obs: '(Lançado rápido)', destino, doacao, pago: !pagarDepois, patrocinadorId, dataVencimento
     });
-    salvarDados(dados);
 
     // Feedback
     const fb = document.getElementById('caixaFeedback');
@@ -1646,16 +1683,17 @@ function gerarPDFComLogo(logoBase64) {
         doc.autoTable({
             startY: y, theme: 'grid',
             headStyles: { fillColor: [21, 101, 192] },
+            styles: { overflow: 'linebreak', fontSize: 8, cellPadding: 2 },
             head: [['Patrocinador', 'Tipo', 'Descrição', 'Valor', 'Barraca', 'Status']],
             body: patrs.map(p => [
-                p.nome,
+                p.nome || '-',
                 TIPOS[p.tipo] || 'Dinheiro',
                 p.desc || '-',
                 'R$ ' + fmt(p.valor),
                 p.barraca ? (NOMES_BARRACAS[p.barraca] || p.barraca).replace(/^.{2}/, '') : '-',
                 p.recebido ? 'Recebido' : 'Pendente'
             ]),
-            columnStyles: { 0: { cellWidth: 35 }, 2: { cellWidth: 35 } }
+            columnStyles: { 0: { cellWidth: 38 }, 2: { cellWidth: 40 } }
         });
         y = doc.lastAutoTable.finalY + 5;
         doc.setFontSize(9);
@@ -1724,7 +1762,7 @@ function gerarPDFComLogo(logoBase64) {
         doc.autoTable({
             startY: y, theme: 'striped',
             headStyles: { fillColor: [92, 61, 46] },
-            head: [[nome, '10/Jul', '11/Jul', '17/Jul', '18/Jul', 'Total Qt', 'Faturamento']],
+            head: [[nome, DIAS_FESTA[1].split(' ')[0], DIAS_FESTA[2].split(' ')[0], DIAS_FESTA[3].split(' ')[0], DIAS_FESTA[4].split(' ')[0], 'Total Qt', 'Faturamento']],
             body: prods
         });
         y = doc.lastAutoTable.finalY + 8;
@@ -1801,11 +1839,12 @@ function gerarPDFComLogo(logoBase64) {
         checkPage(20);
         doc.setFontSize(10); doc.text('Detalhamento:', 14, y); y += 5;
         doc.autoTable({
-            startY: y, theme: 'striped', styles: { fontSize: 7 },
+            startY: y, theme: 'striped', styles: { fontSize: 7, overflow: 'linebreak', cellPadding: 2 },
             headStyles: { fillColor: [92, 61, 46] },
+            columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 40 }, 2: { cellWidth: 16 }, 3: { cellWidth: 20 }, 4: { cellWidth: 22 }, 5: { cellWidth: 20 }, 6: { cellWidth: 24 }, 7: { cellWidth: 16 } },
             head: [['Categoria', 'Descrição', 'Qtd', 'Valor', 'Local', 'Destino', 'Tipo', 'Status']],
             body: despesas.map(d => [
-                d.categoria, d.desc, (d.qtd||1) + ' ' + (d.unidade||'un'),
+                d.categoria || '-', d.desc || '-', (d.qtd||1) + ' ' + (d.unidade||'un'),
                 'R$ ' + fmt(d.valor), d.local || '-',
                 d.destino === 'geral' ? 'Geral' : (NOMES_BARRACAS[d.destino]||d.destino||'').replace(/^.{2}/,''),
                 d.doacao ? 'Doação' + (d.patrocinadorId ? ' (' + getNomePatrocinador(d.patrocinadorId) + ')' : '') : 'Compra',
@@ -3029,9 +3068,7 @@ function lancarDoacaoEntrada() {
     const recebido = document.getElementById('doacaoRecebido').checked;
     if (!nome || isNaN(valor) || valor <= 0) { alert('Preencha o nome e valor da doação'); return; }
 
-    if (!dados.doacoesEntrada) dados.doacoesEntrada = [];
-    dados.doacoesEntrada.push({ id: Date.now(), nome, valor, tipo, data, obs, recebido });
-    salvarDados(dados);
+    adicionarItem('doacoesEntrada', { id: Date.now(), nome, valor, tipo, data, obs, recebido });
     document.getElementById('doacaoNome').value = '';
     document.getElementById('doacaoValor').value = '';
     document.getElementById('doacaoObs').value = '';
@@ -3043,8 +3080,7 @@ function lancarDoacaoEntrada() {
 
 function removerDoacaoEntrada(id) {
     if (!dados.doacoesEntrada) return;
-    dados.doacoesEntrada = dados.doacoesEntrada.filter(d => d.id !== id);
-    salvarDados(dados);
+    removerItem('doacoesEntrada', id);
     renderizarDoacoesEntrada();
     renderizarTudo();
 }
@@ -3052,7 +3088,7 @@ function removerDoacaoEntrada(id) {
 function toggleDoacaoRecebida(id) {
     if (!dados.doacoesEntrada) return;
     const item = dados.doacoesEntrada.find(d => d.id === id);
-    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarDoacoesEntrada(); renderizarTudo(); }
+    if (item) { atualizarItem('doacoesEntrada', id, { recebido: !item.recebido }); renderizarDoacoesEntrada(); renderizarTudo(); }
 }
 
 function renderizarDoacoesEntrada() {
@@ -3102,9 +3138,7 @@ function adicionarNecessidade() {
     const obs = document.getElementById('necessidadeObs').value.trim();
     if (!item) { alert('Preencha o item necessário'); return; }
 
-    if (!dados.necessidades) dados.necessidades = [];
-    dados.necessidades.push({ id: Date.now(), barraca, item, qtd, unidade, obs, conseguido: false });
-    salvarDados(dados);
+    adicionarItem('necessidades', { id: Date.now(), barraca, item, qtd, unidade, obs, conseguido: false });
     document.getElementById('necessidadeItem').value = '';
     document.getElementById('necessidadeQtd').value = '1';
     document.getElementById('necessidadeObs').value = '';
@@ -3114,15 +3148,14 @@ function adicionarNecessidade() {
 
 function removerNecessidade(id) {
     if (!dados.necessidades) return;
-    dados.necessidades = dados.necessidades.filter(n => n.id !== id);
-    salvarDados(dados);
+    removerItem('necessidades', id);
     renderizarNecessidades();
 }
 
 function toggleConseguido(id) {
     if (!dados.necessidades) return;
     const item = dados.necessidades.find(n => n.id === id);
-    if (item) { item.conseguido = !item.conseguido; salvarDados(dados); renderizarNecessidades(); }
+    if (item) { atualizarItem('necessidades', id, { conseguido: !item.conseguido }); renderizarNecessidades(); }
 }
 
 function renderizarNecessidades() {
@@ -3259,9 +3292,7 @@ function lancarDoador() {
     const obs = document.getElementById('doadorObs').value.trim();
     if (!nome || !item) { alert('Preencha o nome do doador e o item doado'); return; }
 
-    if (!dados.doadores) dados.doadores = [];
-    dados.doadores.push({ id: Date.now(), nome, item, valor, obs });
-    salvarDados(dados);
+    adicionarItem('doadores', { id: Date.now(), nome, item, valor, obs });
     document.getElementById('doadorNome').value = '';
     document.getElementById('doadorItem').value = '';
     document.getElementById('doadorValor').value = '';
@@ -3272,8 +3303,7 @@ function lancarDoador() {
 
 function removerDoador(id) {
     if (!dados.doadores) return;
-    dados.doadores = dados.doadores.filter(d => d.id !== id);
-    salvarDados(dados);
+    removerItem('doadores', id);
     renderizarDoadores();
 }
 

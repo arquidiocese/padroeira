@@ -1,11 +1,12 @@
 // ===== PÁGINA DOAÇÕES (dinheiro + bingo/leilão) =====
 let edicaoDoacao = null; // { tipo: 'dinheiro'|'doador', id }
 
-function mostrarSub(secao) {
+function mostrarSub(secao, btn) {
     document.querySelectorAll('.sub-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.sub-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('sub-' + secao).classList.add('active');
-    event.target.classList.add('active');
+    if (btn) btn.classList.add('active');
+    else if (typeof event !== 'undefined' && event.target) event.target.classList.add('active');
 }
 
 // ----- Doações em dinheiro -----
@@ -18,9 +19,7 @@ function lancarDoacaoEntrada() {
     const recebido = document.getElementById('doacaoRecebido').checked;
     if (!nome || isNaN(valor) || valor <= 0) { alert('Preencha o nome e valor da doação'); return; }
 
-    if (!dados.doacoesEntrada) dados.doacoesEntrada = [];
-    dados.doacoesEntrada.push({ id: Date.now(), nome, valor, tipo, data, obs, recebido });
-    salvarDados(dados);
+    adicionarItem('doacoesEntrada', { id: Date.now(), nome, valor, tipo, data, obs, recebido });
     document.getElementById('doacaoNome').value = '';
     document.getElementById('doacaoValor').value = '';
     document.getElementById('doacaoObs').value = '';
@@ -30,14 +29,13 @@ function lancarDoacaoEntrada() {
 
 function removerDoacaoEntrada(id) {
     if (!confirm('Remover esta doação?')) return;
-    dados.doacoesEntrada = (dados.doacoesEntrada || []).filter(d => d.id !== id);
-    salvarDados(dados);
+    removerItem('doacoesEntrada', id);
     renderizarPagina();
 }
 
 function toggleDoacaoRecebida(id) {
     const item = (dados.doacoesEntrada || []).find(d => d.id === id);
-    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarPagina(); }
+    if (item) { atualizarItem('doacoesEntrada', id, { recebido: !item.recebido }); renderizarPagina(); }
 }
 
 function editarDoacaoEntrada(id) {
@@ -71,9 +69,7 @@ function lancarDoador() {
     const obs = document.getElementById('doadorObs').value.trim();
     if (!nome || !item) { alert('Preencha o nome do doador e o item doado'); return; }
 
-    if (!dados.doadores) dados.doadores = [];
-    dados.doadores.push({ id: Date.now(), nome, item, valor, obs });
-    salvarDados(dados);
+    adicionarItem('doadores', { id: Date.now(), nome, item, valor, obs });
     document.getElementById('doadorNome').value = '';
     document.getElementById('doadorItem').value = '';
     document.getElementById('doadorValor').value = '';
@@ -84,8 +80,7 @@ function lancarDoador() {
 
 function removerDoador(id) {
     if (!confirm('Remover esta doação?')) return;
-    dados.doadores = (dados.doadores || []).filter(d => d.id !== id);
-    salvarDados(dados);
+    removerItem('doadores', id);
     renderizarPagina();
 }
 
@@ -108,24 +103,27 @@ function salvarEdicaoDoacoes() {
     if (edicaoDoacao.tipo === 'dinheiro') {
         const item = (dados.doacoesEntrada || []).find(d => d.id === edicaoDoacao.id);
         if (item) {
-            item.nome = document.getElementById('editNome').value.trim() || item.nome;
             const v = document.getElementById('editValor').value;
-            item.valor = v === '' ? 0 : parseFloat(v);
-            item.tipo = document.getElementById('editTipoDoacao').value;
-            item.data = document.getElementById('editData').value || '';
-            item.obs = document.getElementById('editObs').value.trim();
+            atualizarItem('doacoesEntrada', edicaoDoacao.id, {
+                nome: document.getElementById('editNome').value.trim() || item.nome,
+                valor: v === '' ? 0 : parseFloat(v),
+                tipo: document.getElementById('editTipoDoacao').value,
+                data: document.getElementById('editData').value || '',
+                obs: document.getElementById('editObs').value.trim()
+            });
         }
     } else if (edicaoDoacao.tipo === 'doador') {
         const item = (dados.doadores || []).find(d => d.id === edicaoDoacao.id);
         if (item) {
-            item.nome = document.getElementById('editNome').value.trim() || item.nome;
-            item.item = document.getElementById('editItem').value.trim() || item.item;
             const v = document.getElementById('editValor').value;
-            item.valor = v === '' ? 0 : parseFloat(v);
-            item.obs = document.getElementById('editObs').value.trim();
+            atualizarItem('doadores', edicaoDoacao.id, {
+                nome: document.getElementById('editNome').value.trim() || item.nome,
+                item: document.getElementById('editItem').value.trim() || item.item,
+                valor: v === '' ? 0 : parseFloat(v),
+                obs: document.getElementById('editObs').value.trim()
+            });
         }
     }
-    salvarDados(dados);
     fecharModal();
     renderizarPagina();
 }

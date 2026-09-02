@@ -7,9 +7,7 @@ function adicionarNecessidade() {
     const obs = document.getElementById('necessidadeObs').value.trim();
     if (!item) { alert('Preencha o item necessário'); return; }
 
-    if (!dados.necessidades) dados.necessidades = [];
-    dados.necessidades.push({ id: Date.now(), barraca, item, qtd, unidade, obs, conseguido: false });
-    salvarDados(dados);
+    adicionarItem('necessidades', { id: Date.now(), barraca, item, qtd, unidade, obs, conseguido: false });
     document.getElementById('necessidadeItem').value = '';
     document.getElementById('necessidadeQtd').value = '1';
     document.getElementById('necessidadeObs').value = '';
@@ -19,14 +17,13 @@ function adicionarNecessidade() {
 
 function removerNecessidade(id) {
     if (!confirm('Remover este item?')) return;
-    dados.necessidades = (dados.necessidades || []).filter(n => n.id !== id);
-    salvarDados(dados);
+    removerItem('necessidades', id);
     renderizarPagina();
 }
 
 function toggleConseguido(id) {
     const item = (dados.necessidades || []).find(n => n.id === id);
-    if (item) { item.conseguido = !item.conseguido; salvarDados(dados); renderizarPagina(); }
+    if (item) { atualizarItem('necessidades', id, { conseguido: !item.conseguido }); renderizarPagina(); }
 }
 
 function renderizarPagina() {
@@ -128,8 +125,10 @@ function exportarNecessidadesPDF() {
         doc.autoTable({
             startY: y, theme: 'striped',
             headStyles: { fillColor: [91, 192, 235] },
+            styles: { overflow: 'linebreak', cellPadding: 3, fontSize: 9 },
+            columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 30 }, 2: { cellWidth: 45 }, 3: { cellWidth: 27 } },
             head: [[nome, 'Qtd', 'Obs', 'Status']],
-            body: itens.map(n => [n.item, `${n.qtd} ${n.unidade}`, n.obs || '-', n.conseguido ? 'Conseguido' : 'PENDENTE'])
+            body: itens.map(n => [n.item || '-', `${n.qtd||0} ${n.unidade||''}`, n.obs || '-', n.conseguido ? 'Conseguido' : 'PENDENTE'])
         });
         y = doc.lastAutoTable.finalY + 8;
     });

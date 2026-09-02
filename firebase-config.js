@@ -47,3 +47,31 @@ function escutarMudancas(callback) {
         if (dados) callback(dados);
     });
 }
+
+// ===== OPERAÇÕES ITEM-A-ITEM (seguras para uso simultâneo) =====
+// Grava/remove/atualiza UM item dentro de um campo (ex: patrocinadores),
+// usando o id do item como chave. Dois dispositivos adicionando ao mesmo
+// tempo NÃO se sobrescrevem, pois cada item tem sua própria chave.
+
+function fbAdicionarItem(campo, item) {
+    const limpo = JSON.parse(JSON.stringify(item));
+    return dbRef.child(campo).child(String(item.id)).set(limpo).catch(err => {
+        console.error('Erro ao adicionar item no Firebase:', err);
+        if (typeof mostrarToast === 'function') mostrarToast('⚠️ ERRO: item NÃO salvo no servidor. Verifique a conexão.', 'error');
+    });
+}
+
+function fbRemoverItem(campo, id) {
+    return dbRef.child(campo).child(String(id)).remove().catch(err => {
+        console.error('Erro ao remover item no Firebase:', err);
+        if (typeof mostrarToast === 'function') mostrarToast('⚠️ ERRO: não foi possível remover no servidor.', 'error');
+    });
+}
+
+function fbAtualizarItem(campo, id, item) {
+    const limpo = JSON.parse(JSON.stringify(item));
+    return dbRef.child(campo).child(String(id)).set(limpo).catch(err => {
+        console.error('Erro ao atualizar item no Firebase:', err);
+        if (typeof mostrarToast === 'function') mostrarToast('⚠️ ERRO: alteração NÃO salva no servidor.', 'error');
+    });
+}

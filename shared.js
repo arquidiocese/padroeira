@@ -32,7 +32,8 @@ const DIAS_CAIXAS = DIAS_FESTA;
 const STORAGE_KEY = 'padroeira_financeiro_v1';
 
 function fmt(valor) {
-    return (valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Number(valor);
+    return (isNaN(n) ? 0 : n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function R$(valor) { return 'R$ ' + fmt(valor); }
 
@@ -117,6 +118,38 @@ function salvarDados(d) {
     if (typeof salvarFirebase === 'function') salvarFirebase(d);
 }
 
+// ===== OPERAÇÕES ITEM-A-ITEM (seguras para uso simultâneo) =====
+// Campos que podem ser lançados por várias pessoas ao mesmo tempo.
+// Em vez de salvar a lista inteira (que causaria sobrescrita entre dispositivos),
+// grava/remove/atualiza só o item específico no Firebase.
+const CAMPOS_ITEM_A_ITEM = ['patrocinadores', 'despesas', 'doacoesEntrada', 'doadores', 'necessidades'];
+
+function adicionarItem(campo, item) {
+    if (!dados[campo]) dados[campo] = [];
+    dados[campo].push(item);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbAdicionarItem === 'function') fbAdicionarItem(campo, item);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+}
+
+function removerItem(campo, id) {
+    if (!dados[campo]) dados[campo] = [];
+    dados[campo] = dados[campo].filter(x => x.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbRemoverItem === 'function') fbRemoverItem(campo, id);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+}
+
+function atualizarItem(campo, id, novosCampos) {
+    if (!dados[campo]) dados[campo] = [];
+    const item = dados[campo].find(x => x.id === id);
+    if (!item) return;
+    Object.assign(item, novosCampos);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+    if (typeof fbAtualizarItem === 'function') fbAtualizarItem(campo, id, item);
+    else if (typeof salvarFirebase === 'function') salvarFirebase(dados);
+}
+
 // Objeto global de dados usado pelas páginas
 let dados = carregarDados();
 
@@ -141,8 +174,11 @@ function iniciarSync() {
     if (typeof escutarMudancas === 'function') {
         escutarMudancas(function(dadosFirebase) {
             try {
-                dados = normalizarDados(dadosFirebase);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+                const norm = normalizarDados(dadosFirebase);
+                // Salva SÓ no localStorage — NÃO chama salvarFirebase aqui
+                // para evitar loop (escuta → salva → dispara evento → escuta...)
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(norm));
+                dados = norm;
                 if (typeof renderizarPagina === 'function') renderizarPagina();
             } catch (err) {
                 console.error('Erro ao sincronizar:', err);

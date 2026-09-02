@@ -72,11 +72,11 @@
     </div>
 
     <nav class="painel-nav">
-        <button class="active" onclick="mostrarPainel('geral')">📊 Geral</button>
-        <button onclick="mostrarPainel('barracas')">🏪 Barracas</button>
-        <button onclick="mostrarPainel('comparativo')">📅 Por Dia</button>
-        <button onclick="mostrarPainel('despesas')">💰 Despesas</button>
-        <button onclick="mostrarPainel('doacoes')">🎁 Doações</button>
+        <button class="active" onclick="mostrarPainel('geral', this)">📊 Geral</button>
+        <button onclick="mostrarPainel('barracas', this)">🏪 Barracas</button>
+        <button onclick="mostrarPainel('comparativo', this)">📅 Por Dia</button>
+        <button onclick="mostrarPainel('despesas', this)">💰 Despesas</button>
+        <button onclick="mostrarPainel('doacoes', this)">🎁 Doações</button>
     </nav>
 
     <!-- GERAL -->
@@ -200,11 +200,12 @@
         return d;
     }
 
-    function mostrarPainel(secao) {
+    function mostrarPainel(secao, btn) {
         document.querySelectorAll('.painel-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.painel-nav button').forEach(b => b.classList.remove('active'));
         document.getElementById('painel-' + secao).classList.add('active');
-        event.target.classList.add('active');
+        if (btn) btn.classList.add('active');
+        else if (typeof event !== 'undefined' && event.target) event.target.classList.add('active');
     }
 
     let chartB = null, chartD = null, chartPizza = null, chartRD = null;

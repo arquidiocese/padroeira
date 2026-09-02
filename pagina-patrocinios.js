@@ -11,9 +11,7 @@ function lancarPatrocinio() {
     const recebido = document.getElementById('recebidoPatrocinio').checked;
     if (!nome) { alert('Preencha o nome do patrocinador'); return; }
 
-    if (!dados.patrocinadores) dados.patrocinadores = [];
-    dados.patrocinadores.push({ id: Date.now(), nome, tipo, valor, desc, barraca: '', obs, recebido });
-    salvarDados(dados);
+    adicionarItem('patrocinadores', { id: Date.now(), nome, tipo, valor, desc, barraca: '', obs, recebido });
 
     document.getElementById('nomePatrocinador').value = '';
     document.getElementById('valorPatrocinio').value = '';
@@ -26,14 +24,13 @@ function lancarPatrocinio() {
 
 function removerPatrocinio(id) {
     if (!confirm('Excluir este patrocínio?')) return;
-    dados.patrocinadores = (dados.patrocinadores || []).filter(p => p.id !== id);
-    salvarDados(dados);
+    removerItem('patrocinadores', id);
     renderizarPagina();
 }
 
 function toggleRecebido(id) {
     const item = (dados.patrocinadores || []).find(p => p.id === id);
-    if (item) { item.recebido = !item.recebido; salvarDados(dados); renderizarPagina(); }
+    if (item) { atualizarItem('patrocinadores', id, { recebido: !item.recebido }); renderizarPagina(); }
 }
 
 function ordenarPatrocinadores(tipo) {
@@ -68,13 +65,14 @@ function editarPatrocinio(id) {
 function salvarEdicaoPatrocinio() {
     const item = (dados.patrocinadores || []).find(p => p.id === edicaoPatrId);
     if (!item) { fecharModal(); return; }
-    item.nome = document.getElementById('editNome').value.trim() || item.nome;
-    item.tipo = document.getElementById('editTipo').value;
     const v = document.getElementById('editValor').value;
-    item.valor = v === '' ? 0 : parseFloat(v);
-    item.desc = document.getElementById('editDesc').value.trim();
-    item.obs = document.getElementById('editObs').value.trim();
-    salvarDados(dados);
+    atualizarItem('patrocinadores', edicaoPatrId, {
+        nome: document.getElementById('editNome').value.trim() || item.nome,
+        tipo: document.getElementById('editTipo').value,
+        valor: v === '' ? 0 : parseFloat(v),
+        desc: document.getElementById('editDesc').value.trim(),
+        obs: document.getElementById('editObs').value.trim()
+    });
     fecharModal();
     renderizarPagina();
 }
@@ -152,11 +150,14 @@ function exportarPatrocinadoresPDF() {
 
     doc.autoTable({
         startY: y, theme: 'grid',
-        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255] },
+        headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255], fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        styles: { overflow: 'linebreak', cellPadding: 3 },
+        columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 22 }, 2: { cellWidth: 60 }, 3: { cellWidth: 25 }, 4: { cellWidth: 25 } },
         head: [['Patrocinador', 'Tipo', 'Descrição', 'Valor', 'Status']],
         body: lista.map(p => [
-            p.nome, TIPOS[p.tipo] || 'Dinheiro', p.desc || '-',
-            p.valor > 0 ? 'R$ ' + fmt(p.valor) : '-',
+            p.nome || '-', TIPOS[p.tipo] || 'Dinheiro', p.desc || '-',
+            (p.valor||0) > 0 ? 'R$ ' + fmt(p.valor||0) : '-',
             p.recebido ? 'Recebido' : 'Pendente'
         ])
     });
