@@ -898,12 +898,14 @@ function atualizarResumoGeral() {
     const totalDespesasCompra = dados.despesas.filter(d => !d.doacao).reduce((s, d) => s + (d.valor||0), 0);
     const totalDoacoes = dados.despesas.filter(d => d.doacao).reduce((s, d) => s + (d.valor||0), 0);
     const totalDoacoesEntrada = (dados.doacoesEntrada || []).reduce((s, d) => s + (d.valor||0), 0);
+    // Camisetas: só as PAGAS entram na receita (pendentes ficam como "a receber")
+    const totalCamisetasPagas = (dados.camisetas || []).filter(c => c.pago).reduce((s, c) => s + (c.valor||0), 0);
 
-    const receita = totalVendas + totalPatrocinadores + totalDoacoesEntrada;
+    const receita = totalVendas + totalPatrocinadores + totalDoacoesEntrada + totalCamisetasPagas;
     const saldo = receita - totalDespesasCompra;
 
     document.getElementById('receitaTotal').textContent = R$(receita);
-    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patroc. $: ${R$(totalPatrocinadores)} | Serv/Prod: ${R$(totalPatrServico + totalPatrProduto)} | Doações: ${R$(totalDoacoesEntrada)}`;
+    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patroc. $: ${R$(totalPatrocinadores)} | Doações: ${R$(totalDoacoesEntrada)} | Camisetas: ${R$(totalCamisetasPagas)}`;
     document.getElementById('gastoTotal').textContent = R$(totalDespesasCompra);
     document.getElementById('gastoDetalhe').textContent = `Doações em produtos: ${R$(totalDoacoes)} (não conta como gasto)`;
 
@@ -2046,28 +2048,63 @@ function gerarPDFComLogo(logoBase64) {
         y += 10;
     }
 
+    // ===== CAMISETAS =====
+    const camisetasPDF = dados.camisetas || [];
+    if (camisetasPDF.length > 0) {
+        checkPage(30);
+        titulo('VENDA DE CAMISETAS');
+        const TIPO_LBL = { trabalhador: 'Trabalhador', publico: 'Público' };
+        doc.autoTable({
+            startY: y, theme: 'grid',
+            headStyles: { fillColor: [91, 192, 235], textColor: [255,255,255], fontSize: 8 },
+            bodyStyles: { fontSize: 7 },
+            styles: { overflow: 'linebreak', cellPadding: 2 },
+            head: [['Nome', 'Telefone', 'Tipo', 'Modelagem', 'Tam.', 'Valor', 'Status']],
+            body: [...camisetasPDF].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(c => [
+                c.nome || '-', c.telefone || '-', TIPO_LBL[c.tipo] || c.tipo,
+                c.modelagem || '-', c.tamanho || '-',
+                (c.valor||0) > 0 ? 'R$ ' + fmt(c.valor) : '-',
+                c.pago ? 'Pago' : 'Pendente'
+            ])
+        });
+        y = doc.lastAutoTable.finalY + 5;
+        const totCamis = camisetasPDF.reduce((s,c)=>s+(c.valor||0),0);
+        const totCamisPagas = camisetasPDF.filter(c=>c.pago).reduce((s,c)=>s+(c.valor||0),0);
+        doc.setFontSize(9); doc.setTextColor(80);
+        doc.text(`Total: ${camisetasPDF.length} camisetas | Valor total: R$ ${fmt(totCamis)} | Recebido: R$ ${fmt(totCamisPagas)} | A receber: R$ ${fmt(totCamis - totCamisPagas)}`, 14, y);
+        y += 15;
+    }
+
     // ===== RESULTADO FINAL =====
     checkPage(40);
-    const secFinal = (doacoesPDF.length > 0 ? 10 : 9) + ((dados.doadores||[]).length > 0 ? 1 : 0) + (doacoesEntradaPDF.length > 0 ? 1 : 0) + (necessidadesPDF.length > 0 ? 1 : 0);
+    const secFinal = (doacoesPDF.length > 0 ? 10 : 9) + ((dados.doadores||[]).length > 0 ? 1 : 0) + (doacoesEntradaPDF.length > 0 ? 1 : 0) + (necessidadesPDF.length > 0 ? 1 : 0) + (camisetasPDF.length > 0 ? 1 : 0);
     titulo(secFinal + '. RESULTADO FINAL');
     doc.autoTable({
         startY: y, theme: 'grid',
         headStyles: { fillColor: [46, 125, 50] },
         head: [['', 'Valor']],
-        body: [
-            ['(+) Vendas nas barracas', 'R$ ' + fmt(totalVendas)],
-            ['(+) Patrocínios em dinheiro', 'R$ ' + fmt(patrDinheiro)],
-            ['(+) Doações em dinheiro', 'R$ ' + fmt(doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
-            ['(=) RECEITA TOTAL', 'R$ ' + fmt(receita + doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
-            ['(-) Despesas (compras)', 'R$ ' + fmt(despCompras)],
-            ['(=) SALDO LÍQUIDO', 'R$ ' + fmt(saldo + doacoesEntradaPDF.reduce((s,d) => s + d.valor, 0))],
-            ['', ''],
-            ['Itens vendidos no total', totalItens.toString()],
-            ['Barracas ativas', BARRACAS.filter(b => dados[b] && dados[b].vendas.length > 0).length.toString()],
-            ['Patrocinadores', (dados.patrocinadores||[]).length.toString()],
-            ['Doadores (dinheiro)', doacoesEntradaPDF.length.toString()],
-            ['Economia com doações em produtos', 'R$ ' + fmt(despDoacoes)]
-        ]
+        body: (function(){
+            const doacEnt = doacoesEntradaPDF.reduce((s,d) => s + (d.valor||0), 0);
+            const camisPagas = (dados.camisetas || []).filter(c => c.pago).reduce((s,c) => s + (c.valor||0), 0);
+            const receitaTotalPdf = receita + doacEnt + camisPagas;
+            const saldoLiqPdf = saldo + doacEnt + camisPagas;
+            return [
+                ['(+) Vendas nas barracas', 'R$ ' + fmt(totalVendas)],
+                ['(+) Patrocínios em dinheiro', 'R$ ' + fmt(patrDinheiro)],
+                ['(+) Doações em dinheiro', 'R$ ' + fmt(doacEnt)],
+                ['(+) Camisetas (pagas)', 'R$ ' + fmt(camisPagas)],
+                ['(=) RECEITA TOTAL', 'R$ ' + fmt(receitaTotalPdf)],
+                ['(-) Despesas (compras)', 'R$ ' + fmt(despCompras)],
+                ['(=) SALDO LÍQUIDO', 'R$ ' + fmt(saldoLiqPdf)],
+                ['', ''],
+                ['Itens vendidos no total', totalItens.toString()],
+                ['Barracas ativas', BARRACAS.filter(b => dados[b] && dados[b].vendas.length > 0).length.toString()],
+                ['Patrocinadores', (dados.patrocinadores||[]).length.toString()],
+                ['Doadores (dinheiro)', doacoesEntradaPDF.length.toString()],
+                ['Camisetas vendidas', (dados.camisetas||[]).length.toString()],
+                ['Economia com doações em produtos', 'R$ ' + fmt(despDoacoes)]
+            ];
+        })()
     });
 
     // ===== PÁGINA DE ASSINATURAS =====
@@ -3428,6 +3465,7 @@ function editarCamiseta(id) {
         <div class="campo"><label>Tamanho</label>
             <select id="editCamisaTamanho">${(TAMANHOS_CAMISETA[item.modelagem]||[]).map(x => `<option value="${x.t}" ${x.t===item.tamanho?'selected':''}>${x.t} (${x.ref})</option>`).join('')}</select>
         </div>
+        <div class="campo"><label>Valor R$ (edite para dar desconto)</label><input type="number" id="editCamisaValor" value="${item.valor || 0}" step="0.01" min="0"></div>
     `;
     abrirModal('Editar Venda de Camiseta');
 }
@@ -3443,13 +3481,14 @@ const _salvarEdicaoAntesCamiseta = salvarEdicao;
 salvarEdicao = function() {
     if (edicaoAtual && edicaoAtual.tipo === 'camiseta') {
         const novoTipo = document.getElementById('editCamisaTipo').value;
+        const valorDigitado = document.getElementById('editCamisaValor').value;
         atualizarItem('camisetas', edicaoAtual.id, {
             nome: document.getElementById('editCamisaNome').value.trim(),
             telefone: document.getElementById('editCamisaTelefone').value.trim(),
             tipo: novoTipo,
             modelagem: document.getElementById('editCamisaModelagem').value,
             tamanho: document.getElementById('editCamisaTamanho').value,
-            valor: precoPorTipoCamisa(novoTipo)
+            valor: valorDigitado === '' ? 0 : parseFloat(valorDigitado) // valor manual (permite desconto)
         });
         fecharModal();
         renderizarCamisetas();
