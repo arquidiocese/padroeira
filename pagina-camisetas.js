@@ -173,6 +173,34 @@ function renderizarPagina() {
 
     const contador = document.getElementById('contadorRegistros');
     if (contador) contador.textContent = todas.length > 0 ? `(${todas.length} vendida${todas.length>1?'s':''})` : '';
+
+    renderizarQtdPorTamanho();
+}
+
+// Quantidade vendida por tamanho (separado por modelagem)
+function renderizarQtdPorTamanho() {
+    const el = document.getElementById('camisetasPorTamanho');
+    if (!el) return;
+    const todas = dados.camisetas || [];
+    if (todas.length === 0) { el.innerHTML = ''; return; }
+
+    let html = '';
+    ['Baby Look', 'Casual'].forEach(modelagem => {
+        const daModelagem = todas.filter(c => c.modelagem === modelagem);
+        if (daModelagem.length === 0) return;
+        const ordem = (TAMANHOS_CAMISETA[modelagem] || []).map(x => x.t);
+        const contagem = {};
+        daModelagem.forEach(c => { contagem[c.tamanho] = (contagem[c.tamanho] || 0) + 1; });
+        const tamanhosPresentes = ordem.filter(t => contagem[t]);
+        html += `<div class="tabela-box" style="margin-bottom:12px">
+            <h4>${modelagem} — ${daModelagem.length} camiseta${daModelagem.length>1?'s':''}</h4>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+        tamanhosPresentes.forEach(t => {
+            html += `<span style="background:rgba(91,192,235,0.15);border:1px solid rgba(91,192,235,0.4);border-radius:8px;padding:6px 12px;font-size:0.9rem"><strong style="color:var(--cor-amarelo)">${t}</strong>: ${contagem[t]}</span>`;
+        });
+        html += '</div></div>';
+    });
+    el.innerHTML = html;
 }
 
 iniciarStatusFirebase();
