@@ -78,7 +78,7 @@ function mostrarToast(msg, tipo) {
 }
 
 function dadosVazios() {
-    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], caixas: [], camisetas: [], configCaixas: { fixos: 0, volantes: 0 }, configCamisetas: { precoTrabalhador: 0, precoPublico: 0 }, meta: 0, configBarracas: null, configProdutos: null };
+    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], caixas: [], camisetas: [], configCaixas: { fixos: 0, volantes: 0 }, configCamisetas: { precoTrabalhador: 0, precoPublico: 0, custoTrabalhador: 0, custoPublico: 0 }, meta: 0, configBarracas: null, configProdutos: null };
     BARRACAS.forEach(b => { d[b] = { vendas: [] }; });
     return d;
 }
@@ -134,7 +134,7 @@ function normalizarDados(d) {
 
     if (d.camisetas && !Array.isArray(d.camisetas)) d.camisetas = Object.values(d.camisetas);
     if (!d.camisetas) d.camisetas = [];
-    if (!d.configCamisetas) d.configCamisetas = { precoTrabalhador: 0, precoPublico: 0 };
+    if (!d.configCamisetas) d.configCamisetas = { precoTrabalhador: 0, precoPublico: 0, custoTrabalhador: 0, custoPublico: 0 };
 
     // Garantir que todos os ids sejam NÚMERO (Firebase converte chaves para string)
     ['patrocinadores','despesas','doadores','necessidades','doacoesEntrada','caixas','camisetas'].forEach(campo => {

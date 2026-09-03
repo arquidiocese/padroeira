@@ -98,7 +98,7 @@ let filtro = 'todos';
 let filtroDespesa = 'todos';
 
 function dadosVazios() {
-    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], caixas: [], camisetas: [], configCaixas: { fixos: 0, volantes: 0 }, configCamisetas: { precoTrabalhador: 0, precoPublico: 0 }, meta: 0, configBarracas: null, configProdutos: null };
+    const d = { despesas: [], patrocinadores: [], doadores: [], necessidades: [], doacoesEntrada: [], caixas: [], camisetas: [], configCaixas: { fixos: 0, volantes: 0 }, configCamisetas: { precoTrabalhador: 0, precoPublico: 0, custoTrabalhador: 0, custoPublico: 0 }, meta: 0, configBarracas: null, configProdutos: null };
     BARRACAS.forEach(b => { d[b] = { vendas: [] }; });
     return d;
 }
@@ -174,7 +174,9 @@ function normalizarDados(d) {
 
     if (d.camisetas && !Array.isArray(d.camisetas)) d.camisetas = Object.values(d.camisetas);
     if (!d.camisetas) d.camisetas = [];
-    if (!d.configCamisetas) d.configCamisetas = { precoTrabalhador: 0, precoPublico: 0 };
+    if (!d.configCamisetas) d.configCamisetas = { precoTrabalhador: 0, precoPublico: 0, custoTrabalhador: 0, custoPublico: 0 };
+    if (d.configCamisetas.custoTrabalhador === undefined) d.configCamisetas.custoTrabalhador = 0;
+    if (d.configCamisetas.custoPublico === undefined) d.configCamisetas.custoPublico = 0;
 
     // Garantir que todos os ids sejam NÚMERO (Firebase converte chaves para string)
     ['patrocinadores','despesas','doadores','necessidades','doacoesEntrada','caixas','camisetas'].forEach(campo => {
@@ -3364,10 +3366,17 @@ function precoPorTipoCamisa(tipo) {
     return tipo === 'trabalhador' ? (cfg.precoTrabalhador || 0) : (cfg.precoPublico || 0);
 }
 
+function custoPorTipoCamisa(tipo) {
+    const cfg = dados.configCamisetas || { custoTrabalhador: 0, custoPublico: 0 };
+    return tipo === 'trabalhador' ? (cfg.custoTrabalhador || 0) : (cfg.custoPublico || 0);
+}
+
 function salvarConfigCamisetas() {
     if (!dados.configCamisetas) dados.configCamisetas = {};
     dados.configCamisetas.precoTrabalhador = parseFloat(document.getElementById('cfgPrecoTrabalhador').value) || 0;
     dados.configCamisetas.precoPublico = parseFloat(document.getElementById('cfgPrecoPublico').value) || 0;
+    dados.configCamisetas.custoTrabalhador = parseFloat(document.getElementById('cfgCustoTrabalhador').value) || 0;
+    dados.configCamisetas.custoPublico = parseFloat(document.getElementById('cfgCustoPublico').value) || 0;
     salvarDados(dados);
     renderizarCamisetas();
     mostrarToast('Preços das camisetas salvos!');
@@ -3504,8 +3513,12 @@ function renderizarCamisetas() {
     // Carregar config nos inputs
     const cfgT = document.getElementById('cfgPrecoTrabalhador');
     const cfgP = document.getElementById('cfgPrecoPublico');
+    const cfgCT = document.getElementById('cfgCustoTrabalhador');
+    const cfgCP = document.getElementById('cfgCustoPublico');
     if (cfgT && document.activeElement !== cfgT) cfgT.value = dados.configCamisetas.precoTrabalhador || '';
     if (cfgP && document.activeElement !== cfgP) cfgP.value = dados.configCamisetas.precoPublico || '';
+    if (cfgCT && document.activeElement !== cfgCT) cfgCT.value = dados.configCamisetas.custoTrabalhador || '';
+    if (cfgCP && document.activeElement !== cfgCP) cfgCP.value = dados.configCamisetas.custoPublico || '';
 
     const busca = (document.getElementById('buscaCamisa')?.value || '').toLowerCase();
     let lista = [...dados.camisetas];
@@ -3541,6 +3554,8 @@ function renderizarCamisetas() {
     const totalPub = todas.filter(c => c.tipo === 'publico').length;
     const totalValor = todas.reduce((s, c) => s + (c.valor||0), 0);
     const totalPago = todas.filter(c => c.pago).reduce((s, c) => s + (c.valor||0), 0);
+    const totalCusto = todas.reduce((s, c) => s + custoPorTipoCamisa(c.tipo), 0);
+    const lucroEstimado = totalValor - totalCusto;
 
     const resumoEl = document.getElementById('resumoCamisetas');
     if (resumoEl) {
@@ -3548,9 +3563,11 @@ function renderizarCamisetas() {
             <div class="item neutro"><span>Total Camisetas</span><strong>${todas.length}</strong></div>
             <div class="item neutro"><span>Trabalhador</span><strong>${totalTrab}</strong></div>
             <div class="item neutro"><span>Público</span><strong>${totalPub}</strong></div>
-            <div class="item positivo"><span>Valor Total</span><strong>${R$(totalValor)}</strong></div>
+            <div class="item positivo"><span>Valor Total (venda)</span><strong>${R$(totalValor)}</strong></div>
             <div class="item positivo"><span>Recebido</span><strong>${R$(totalPago)}</strong></div>
             <div class="item negativo"><span>A receber</span><strong>${R$(totalValor - totalPago)}</strong></div>
+            <div class="item negativo"><span>Custo Total</span><strong>${R$(totalCusto)}</strong></div>
+            <div class="item ${lucroEstimado >= 0 ? 'positivo' : 'negativo'}"><span>Lucro Estimado</span><strong>${R$(lucroEstimado)}</strong></div>
         `;
     }
 
@@ -3618,8 +3635,15 @@ function exportarCamisetasPDF() {
     y = doc.lastAutoTable.finalY + 8;
     const totalValor = lista.reduce((s,c) => s + (c.valor||0), 0);
     const totalPago = lista.filter(c => c.pago).reduce((s,c) => s + (c.valor||0), 0);
+    const totalCusto = lista.reduce((s,c) => s + custoPorTipoCamisa(c.tipo), 0);
+    const lucroEstimado = totalValor - totalCusto;
     doc.setFontSize(9); doc.setTextColor(80);
-    doc.text(`Total: ${lista.length} camisetas | Trabalhador: ${lista.filter(c=>c.tipo==='trabalhador').length} | Público: ${lista.filter(c=>c.tipo==='publico').length} | Valor total: R$ ${fmt(totalValor)} | Recebido: R$ ${fmt(totalPago)} | A receber: R$ ${fmt(totalValor-totalPago)}`, 14, y);
+    const linha1 = `Total: ${lista.length} camisetas | Trabalhador: ${lista.filter(c=>c.tipo==='trabalhador').length} | Público: ${lista.filter(c=>c.tipo==='publico').length}`;
+    const linha2 = `Valor total (venda): R$ ${fmt(totalValor)} | Recebido: R$ ${fmt(totalPago)} | A receber: R$ ${fmt(totalValor-totalPago)}`;
+    const linha3 = `Custo total: R$ ${fmt(totalCusto)} | Lucro estimado: R$ ${fmt(lucroEstimado)}`;
+    doc.text(linha1, 14, y); y += 5;
+    doc.text(linha2, 14, y); y += 5;
+    doc.text(linha3, 14, y);
 
     doc.save('camisetas_padroeira.pdf');
     mostrarToast('📄 Lista de camisetas exportada!');
@@ -3761,10 +3785,14 @@ function encerrarEdicao() {
     const configBarracas = dados.configBarracas;
     const configProdutos = dados.configProdutos;
     const configEvento = dados.configEvento;
+    const configCamisetas = dados.configCamisetas;
+    const configCaixas = dados.configCaixas;
     dados = dadosVazios();
     dados.configBarracas = configBarracas;
     dados.configProdutos = configProdutos;
     dados.configEvento = configEvento;
+    if (configCamisetas) dados.configCamisetas = configCamisetas;
+    if (configCaixas) dados.configCaixas = configCaixas;
     salvarDados(dados);
 
     alert('Edição 2026 encerrada!\n\nBackup salvo no computador.\nDados limpos para próxima edição.\nA configuração de barracas e produtos foi mantida.');
