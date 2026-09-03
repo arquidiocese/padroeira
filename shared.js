@@ -122,6 +122,9 @@ function normalizarDados(d) {
     if (!d.doadores) d.doadores = [];
     if (d.necessidades && !Array.isArray(d.necessidades)) d.necessidades = Object.values(d.necessidades);
     if (!d.necessidades) d.necessidades = [];
+    d.necessidades.forEach(n => {
+        if (n.qtdConseguida == null) n.qtdConseguida = n.conseguido ? (n.qtd || 0) : 0;
+    });
     if (d.doacoesEntrada && !Array.isArray(d.doacoesEntrada)) d.doacoesEntrada = Object.values(d.doacoesEntrada);
     if (!d.doacoesEntrada) d.doacoesEntrada = [];
     if (d.caixas && !Array.isArray(d.caixas)) d.caixas = Object.values(d.caixas);

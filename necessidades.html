@@ -59,6 +59,9 @@
                         <option value="pct">Pacote(s)</option>
                         <option value="fardo">Fardo(s)</option>
                         <option value="dz">Dúzia(s)</option>
+                        <option value="lata">Lata(s)</option>
+                        <option value="saco">Saco(s)</option>
+                        <option value="bandeja">Bandeja(s)</option>
                     </select>
                     <input type="text" id="necessidadeObs" placeholder="Observação (opcional)">
                     <button class="btn-venda" onclick="adicionarNecessidade()">Adicionar</button>
@@ -73,6 +76,17 @@
             <div id="listaNecessidades"></div>
         </section>
     </main>
+
+    <div class="modal-overlay" id="modalOverlay" onclick="fecharModal()" style="display:none">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3 id="modalTitulo">Editar Item</h3>
+            <div id="modalConteudo"></div>
+            <div class="modal-btns">
+                <button class="btn-venda" onclick="salvarEdicaoNecessidade()">Salvar</button>
+                <button class="btn-gasto" onclick="fecharModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <footer class="footer">
         <p>Basílica Menor Nossa Senhora da Conceição Aparecida</p>

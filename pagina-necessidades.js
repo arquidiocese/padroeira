@@ -1,4 +1,6 @@
 // ===== PÁGINA ITENS NECESSÁRIOS =====
+let edicaoNecId = null;
+
 function adicionarNecessidade() {
     const barraca = document.getElementById('necessidadeBarraca').value;
     const item = document.getElementById('necessidadeItem').value.trim();
@@ -7,7 +9,7 @@ function adicionarNecessidade() {
     const obs = document.getElementById('necessidadeObs').value.trim();
     if (!item) { alert('Preencha o item necessário'); return; }
 
-    adicionarItem('necessidades', { id: Date.now(), barraca, item, qtd, unidade, obs, conseguido: false });
+    adicionarItem('necessidades', { id: Date.now(), barraca, item, qtd, unidade, obs, qtdConseguida: 0, conseguido: false });
     document.getElementById('necessidadeItem').value = '';
     document.getElementById('necessidadeQtd').value = '1';
     document.getElementById('necessidadeObs').value = '';
@@ -23,7 +25,68 @@ function removerNecessidade(id) {
 
 function toggleConseguido(id) {
     const item = (dados.necessidades || []).find(n => String(n.id) === String(id));
-    if (item) { atualizarItem('necessidades', id, { conseguido: !item.conseguido }); renderizarPagina(); }
+    if (!item) return;
+    const marcar = !item.conseguido;
+    atualizarItem('necessidades', id, { conseguido: marcar, qtdConseguida: marcar ? (item.qtd || 0) : 0 });
+    renderizarPagina();
+}
+
+// Lançar (somar) uma quantidade recebida/conseguida ao item
+function lancarConseguido(id) {
+    const item = (dados.necessidades || []).find(n => String(n.id) === String(id));
+    if (!item) return;
+    const resp = prompt(`Lançar quantidade recebida de "${item.item}"\n(Meta: ${item.qtd} ${item.unidade} | Já conseguido: ${item.qtdConseguida||0} ${item.unidade})\n\nDigite a quantidade que chegou agora:`, '');
+    if (resp === null) return;
+    const add = parseFloat(String(resp).replace(',', '.'));
+    if (isNaN(add) || add === 0) { alert('Digite um número válido.'); return; }
+    let novo = (item.qtdConseguida || 0) + add;
+    if (novo < 0) novo = 0;
+    atualizarItem('necessidades', id, { qtdConseguida: novo, conseguido: novo >= (item.qtd || 0) });
+    renderizarPagina();
+    mostrarToast(`✅ Lançado ${add} ${item.unidade} de ${item.item}`);
+}
+
+function editarNecessidade(id) {
+    const item = (dados.necessidades || []).find(n => String(n.id) === String(id));
+    if (!item) return;
+    edicaoNecId = id;
+    const unidades = ['un','kg','g','L','cx','pct','fardo','dz','lata','saco','bandeja'];
+    const unidadeOpts = unidades.map(u => `<option value="${u}" ${item.unidade === u ? 'selected' : ''}>${u}</option>`).join('');
+    const barracaOpts = '<option value="geral" ' + (item.barraca === 'geral' ? 'selected' : '') + '>Geral (evento todo)</option>' +
+        BARRACAS.map(b => `<option value="${b}" ${item.barraca === b ? 'selected' : ''}>${(NOMES_BARRACAS[b]||b).replace(/^.{2}\s?/,'')}</option>`).join('');
+    document.getElementById('modalConteudo').innerHTML = `
+        <div class="campo"><label>Barraca</label><select id="editNecBarraca">${barracaOpts}</select></div>
+        <div class="campo"><label>Item</label><input type="text" id="editNecItem" value="${(item.item||'').replace(/"/g,'&quot;')}"></div>
+        <div class="campo"><label>Quantidade (meta)</label><input type="number" id="editNecQtd" value="${item.qtd || 0}" min="0" step="0.01"></div>
+        <div class="campo"><label>Unidade</label><select id="editNecUnidade">${unidadeOpts}</select></div>
+        <div class="campo"><label>Já conseguido</label><input type="number" id="editNecConseguida" value="${item.qtdConseguida || 0}" min="0" step="0.01"></div>
+        <div class="campo"><label>Observação</label><input type="text" id="editNecObs" value="${(item.obs||'').replace(/"/g,'&quot;')}"></div>
+    `;
+    document.getElementById('modalTitulo').textContent = 'Editar Item Necessário';
+    document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+function salvarEdicaoNecessidade() {
+    if (edicaoNecId == null) return;
+    const qtd = parseFloat(document.getElementById('editNecQtd').value) || 0;
+    const conseguida = parseFloat(document.getElementById('editNecConseguida').value) || 0;
+    atualizarItem('necessidades', edicaoNecId, {
+        barraca: document.getElementById('editNecBarraca').value,
+        item: document.getElementById('editNecItem').value.trim(),
+        qtd,
+        unidade: document.getElementById('editNecUnidade').value,
+        qtdConseguida: conseguida,
+        obs: document.getElementById('editNecObs').value.trim(),
+        conseguido: conseguida >= qtd
+    });
+    fecharModal();
+    renderizarPagina();
+    mostrarToast('✅ Item atualizado!');
+}
+
+function fecharModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+    edicaoNecId = null;
 }
 
 function renderizarPagina() {
@@ -61,7 +124,7 @@ function renderizarPagina() {
     let html = '';
     const totalItens = dados.necessidades.length;
     const totalConseguidos = dados.necessidades.filter(n => n.conseguido).length;
-    html += `<div class="resumo-barraca" style="margin-bottom:15px"><div class="item neutro"><span>Total de Itens</span><strong>${totalItens}</strong></div><div class="item positivo"><span>Conseguidos</span><strong>${totalConseguidos}</strong></div><div class="item negativo"><span>Pendentes</span><strong>${totalItens - totalConseguidos}</strong></div></div>`;
+    html += `<div class="resumo-barraca" style="margin-bottom:15px"><div class="item neutro"><span>Total de Itens</span><strong>${totalItens}</strong></div><div class="item positivo"><span>Concluídos</span><strong>${totalConseguidos}</strong></div><div class="item negativo"><span>Faltando</span><strong>${totalItens - totalConseguidos}</strong></div></div>`;
 
     const keys = Object.keys(agrupado).sort((a, b) => {
         if (a === 'geral') return -1;
@@ -74,16 +137,25 @@ function renderizarPagina() {
         const itens = agrupado[key];
         const conseguidos = itens.filter(n => n.conseguido).length;
         html += `<div class="tabela-box" style="margin-bottom:12px">
-            <h4>${nome} <small style="opacity:0.6">(${conseguidos}/${itens.length} conseguidos)</small></h4>
-            <table><thead><tr><th></th><th>Item</th><th>Qtd</th><th>Obs</th><th></th></tr></thead><tbody>`;
+            <h4>${nome} <small style="opacity:0.6">(${conseguidos}/${itens.length} concluídos)</small></h4>
+            <table><thead><tr><th></th><th>Item</th><th>Meta</th><th>Conseguido</th><th>Falta</th><th>Obs</th><th></th></tr></thead><tbody>`;
         itens.forEach(n => {
-            const cls = n.conseguido ? 'style="opacity:0.5;text-decoration:line-through"' : '';
+            const conseguida = n.qtdConseguida || 0;
+            const falta = Math.max(0, (n.qtd || 0) - conseguida);
+            const cls = n.conseguido ? 'style="opacity:0.55;text-decoration:line-through"' : '';
+            const corFalta = falta === 0 ? 'var(--cor-verde)' : 'var(--cor-vermelho)';
             html += `<tr ${cls}>
-                <td><input type="checkbox" ${n.conseguido ? 'checked' : ''} onchange="toggleConseguido(${n.id})" style="width:18px;height:18px;accent-color:var(--cor-verde);cursor:pointer"></td>
+                <td><input type="checkbox" ${n.conseguido ? 'checked' : ''} onchange="toggleConseguido(${n.id})" style="width:18px;height:18px;accent-color:var(--cor-verde);cursor:pointer" title="Marcar tudo como conseguido"></td>
                 <td>${n.item}</td>
                 <td>${n.qtd} ${n.unidade}</td>
+                <td>${conseguida} ${n.unidade}</td>
+                <td style="color:${corFalta};font-weight:700">${falta} ${n.unidade}</td>
                 <td>${n.obs || '-'}</td>
-                <td><button class="btn-delete" onclick="removerNecessidade(${n.id})">X</button></td>
+                <td style="white-space:nowrap">
+                    <button class="btn-venda" style="padding:3px 8px" onclick="lancarConseguido(${n.id})" title="Lançar quantidade recebida">+</button>
+                    <button class="btn-edit" onclick="editarNecessidade(${n.id})" title="Editar item">✏️</button>
+                    <button class="btn-delete" onclick="removerNecessidade(${n.id})">X</button>
+                </td>
             </tr>`;
         });
         html += '</tbody></table></div>';
@@ -108,7 +180,7 @@ function exportarNecessidadesPDF() {
     doc.setFontSize(9); doc.setTextColor(100);
     const totalItens = dados.necessidades.length;
     const totalConseguidos = dados.necessidades.filter(n => n.conseguido).length;
-    doc.text(`Total: ${totalItens} itens | Conseguidos: ${totalConseguidos} | Pendentes: ${totalItens - totalConseguidos}`, 14, y); y += 10;
+    doc.text(`Total: ${totalItens} itens | Concluídos: ${totalConseguidos} | Faltando: ${totalItens - totalConseguidos}`, 14, y); y += 10;
     doc.setTextColor(0);
 
     const agrupado = {};
@@ -128,10 +200,14 @@ function exportarNecessidadesPDF() {
         doc.autoTable({
             startY: y, theme: 'striped',
             headStyles: { fillColor: [91, 192, 235] },
-            styles: { overflow: 'linebreak', cellPadding: 3, fontSize: 9 },
-            columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 30 }, 2: { cellWidth: 45 }, 3: { cellWidth: 27 } },
-            head: [[nome, 'Qtd', 'Obs', 'Status']],
-            body: itens.map(n => [n.item || '-', `${n.qtd||0} ${n.unidade||''}`, n.obs || '-', n.conseguido ? 'Conseguido' : 'PENDENTE'])
+            styles: { overflow: 'linebreak', cellPadding: 2, fontSize: 9 },
+            columnStyles: { 0: { cellWidth: 62 }, 1: { cellWidth: 26 }, 2: { cellWidth: 26 }, 3: { cellWidth: 24 }, 4: { cellWidth: 34 } },
+            head: [[nome, 'Meta', 'Conseguido', 'Falta', 'Obs']],
+            body: itens.map(n => {
+                const conseguida = n.qtdConseguida || 0;
+                const falta = Math.max(0, (n.qtd || 0) - conseguida);
+                return [n.item || '-', `${n.qtd||0} ${n.unidade||''}`, `${conseguida} ${n.unidade||''}`, falta === 0 ? 'OK' : `${falta} ${n.unidade||''}`, n.obs || '-'];
+            })
         });
         y = doc.lastAutoTable.finalY + 8;
     });
@@ -142,10 +218,12 @@ function exportarNecessidadesPDF() {
 
 function exportarNecessidadesCSV() {
     if (!dados.necessidades || dados.necessidades.length === 0) { alert('Nenhum item cadastrado'); return; }
-    let csv = 'Barraca;Item;Quantidade;Unidade;Observação;Status\n';
+    let csv = 'Barraca;Item;Meta;Conseguido;Falta;Unidade;Observação;Status\n';
     dados.necessidades.forEach(n => {
         const barraca = n.barraca === 'geral' ? 'Geral' : (NOMES_BARRACAS[n.barraca]||n.barraca||'').replace(/^.{2}\s?/,'');
-        csv += `${barraca};${n.item};${n.qtd};${n.unidade};${n.obs||''};${n.conseguido ? 'Conseguido' : 'Pendente'}\n`;
+        const conseguida = n.qtdConseguida || 0;
+        const falta = Math.max(0, (n.qtd || 0) - conseguida);
+        csv += `${barraca};${n.item};${n.qtd};${conseguida};${falta};${n.unidade};${n.obs||''};${n.conseguido ? 'Concluído' : 'Faltando'}\n`;
     });
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
