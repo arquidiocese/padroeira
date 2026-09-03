@@ -232,5 +232,118 @@ function exportarNecessidadesCSV() {
     link.click();
 }
 
+// Unidade por extenso para os cards (ex: 160 Kg - Carne Moída)
+function unidadeExtenso(u, qtd) {
+    const plural = (qtd || 0) > 1;
+    const mapa = {
+        un: plural ? 'Unidades' : 'Unidade',
+        kg: 'Kg', g: 'g', L: plural ? 'Litros' : 'Litro',
+        cx: plural ? 'Caixas' : 'Caixa',
+        pct: plural ? 'Pacotes' : 'Pacote',
+        fardo: plural ? 'Fardos' : 'Fardo',
+        dz: plural ? 'Dúzias' : 'Dúzia',
+        lata: plural ? 'Latas' : 'Lata',
+        saco: plural ? 'Sacos' : 'Saco',
+        bandeja: plural ? 'Bandejas' : 'Bandeja'
+    };
+    return mapa[u] || u || '';
+}
+
+function fmtQtdCard(q) {
+    const n = Number(q) || 0;
+    return Number.isInteger(n) ? String(n) : String(n).replace('.', ',');
+}
+
+// Exporta um CARD (estilo cartaz) por barraca, no visual da Festa da Padroeira
+function exportarNecessidadesCards() {
+    if (!dados.necessidades || dados.necessidades.length === 0) { alert('Nenhum item cadastrado'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    const AZUL_ESCURO = [13, 42, 92];
+    const AZUL_MEDIO = [30, 90, 168];
+    const DOURADO = [212, 165, 58];
+    const CREME = [247, 240, 222];
+    const TEXTO_ESCURO = [20, 40, 80];
+
+    const agrupado = {};
+    dados.necessidades.forEach(n => {
+        const key = n.barraca || 'geral';
+        if (!agrupado[key]) agrupado[key] = [];
+        agrupado[key].push(n);
+    });
+    const keys = Object.keys(agrupado).sort((a, b) => {
+        if (a === 'geral') return -1; if (b === 'geral') return 1;
+        return (NOMES_BARRACAS[a]||a).localeCompare(NOMES_BARRACAS[b]||b);
+    });
+
+    keys.forEach((key, idx) => {
+        if (idx > 0) doc.addPage();
+        const nome = (key === 'geral' ? 'Geral' : (NOMES_BARRACAS[key]||key)).replace(/^.{2}\s?/,'').toUpperCase();
+        const itens = agrupado[key];
+
+        doc.setFillColor(...AZUL_ESCURO);
+        doc.rect(0, 0, pageW, pageH, 'F');
+        doc.setFillColor(...AZUL_MEDIO);
+        doc.rect(0, 0, pageW, 62, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...DOURADO);
+        doc.setFontSize(20);
+        doc.text('MATERIAIS E INSUMOS', pageW / 2, 26, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(30);
+        const nomeLinhas = doc.splitTextToSize(nome, pageW - 30);
+        doc.text(nomeLinhas, pageW / 2, 44, { align: 'center' });
+
+        const boxX = 18, boxTop = 78, boxW = pageW - 36;
+        const linhas = itens.map(n => {
+            const q = fmtQtdCard(n.qtd);
+            const u = unidadeExtenso(n.unidade, n.qtd);
+            const unidadeTxt = u ? `${u} ` : '';
+            return `${q} ${unidadeTxt}- ${n.item}`;
+        });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        const larguraTexto = boxW - 20;
+        let linhasWrap = [];
+        linhas.forEach((l, i) => {
+            const terminador = i === linhas.length - 1 ? '.' : ';';
+            const partes = doc.splitTextToSize(l + terminador, larguraTexto);
+            linhasWrap.push(partes);
+        });
+        const alturaLinha = 9;
+        const totalLinhasVisuais = linhasWrap.reduce((s, p) => s + p.length, 0);
+        const boxH = Math.min(pageH - boxTop - 30, 24 + totalLinhasVisuais * alturaLinha);
+
+        doc.setFillColor(...CREME);
+        doc.roundedRect(boxX, boxTop, boxW, boxH, 6, 6, 'F');
+
+        doc.setTextColor(...TEXTO_ESCURO);
+        let ty = boxTop + 16;
+        linhasWrap.forEach(partes => {
+            partes.forEach(p => {
+                doc.text(p, boxX + 10, ty);
+                ty += alturaLinha;
+            });
+        });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...DOURADO);
+        doc.setFontSize(13);
+        doc.text('FESTA DA PADROEIRA 2026', pageW / 2, pageH - 16, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(220, 225, 235);
+        doc.setFontSize(9);
+        doc.text('Basílica Menor Nossa Senhora da Conceição Aparecida', pageW / 2, pageH - 9, { align: 'center' });
+    });
+
+    doc.save('materiais_insumos_padroeira.pdf');
+    if (typeof mostrarToast === 'function') mostrarToast('📄 Cards de materiais exportados!');
+}
+
 iniciarStatusFirebase();
 iniciarSync();
