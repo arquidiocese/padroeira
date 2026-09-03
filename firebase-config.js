@@ -26,7 +26,7 @@ const dbRef = db.ref('padroeira');
 // doacoesEntrada, doadores, necessidades, caixas) — esses só são gravados pelas funções
 // fbAdicionarItem/fbGravarCampo, para não desfazer o formato chaveado por id (que evita
 // duplicação e perda). Aqui gravamos só vendas de barraca, config e meta.
-const CAMPOS_ITEM_A_ITEM_FB = ['patrocinadores', 'despesas', 'doacoesEntrada', 'doadores', 'necessidades', 'caixas'];
+const CAMPOS_ITEM_A_ITEM_FB = ['patrocinadores', 'despesas', 'doacoesEntrada', 'doadores', 'necessidades', 'caixas', 'camisetas'];
 
 function salvarFirebase(dados) {
     // Converter para JSON e voltar para limpar undefined/funções

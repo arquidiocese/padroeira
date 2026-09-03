@@ -115,6 +115,7 @@
             <button class="menu-btn" data-section="doadores">🎁 Doações Bingo</button>
             <button class="menu-btn" data-section="necessidades">📋 Necessidades</button>
             <button class="menu-btn" data-section="caixas">🧑‍💼 Caixas</button>
+            <button class="menu-btn" data-section="camisetas">👕 Camisetas</button>
             <button class="menu-btn" data-section="config">⚙️ Config</button>
         </div>
         <div class="menu-barracas-vendas">
@@ -872,6 +873,76 @@
             </div>
         </section>
 
+        <!-- CAMISETAS -->
+        <section id="sec-camisetas" class="section">
+            <h2>👕 Venda de Camisetas</h2>
+            <p class="secao-desc">Registre as vendas de camisetas. Configure os preços (Trabalhador e Público). O valor é preenchido automaticamente conforme o tipo.</p>
+
+            <!-- Config de preços -->
+            <div class="painel-madeira" style="margin-bottom:15px">
+                <h3>Configuração de Preços</h3>
+                <div class="form-row">
+                    <label style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;white-space:nowrap">Preço Trabalhador R$:</label>
+                    <input type="number" id="cfgPrecoTrabalhador" placeholder="0,00" step="0.01" min="0" style="width:110px;flex:0 0 110px">
+                    <label style="font-size:0.85rem;color:var(--cor-palha);font-weight:600;white-space:nowrap">Preço Público R$:</label>
+                    <input type="number" id="cfgPrecoPublico" placeholder="0,00" step="0.01" min="0" style="width:110px;flex:0 0 110px">
+                    <button class="btn-venda" onclick="salvarConfigCamisetas()">Salvar Preços</button>
+                </div>
+            </div>
+
+            <!-- Registrar venda -->
+            <div class="painel-madeira">
+                <h3>Registrar Venda</h3>
+                <div class="form-row">
+                    <input type="text" id="camisaNome" placeholder="Nome da pessoa" style="flex:2;min-width:180px">
+                    <input type="tel" id="camisaTelefone" placeholder="Telefone (opcional)" style="flex:1;min-width:150px">
+                </div>
+                <div class="form-row">
+                    <select id="camisaTipo" onchange="atualizarPrecoCamiseta()">
+                        <option value="">Tipo de comprador...</option>
+                        <option value="trabalhador">Trabalhador</option>
+                        <option value="publico">Público em geral</option>
+                    </select>
+                    <select id="camisaModelagem" onchange="atualizarTamanhosCamiseta()">
+                        <option value="">Modelagem...</option>
+                        <option value="Baby Look">Baby Look</option>
+                        <option value="Casual">Casual</option>
+                    </select>
+                    <select id="camisaTamanho" style="min-width:220px">
+                        <option value="">Tamanho...</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <span id="camisaPrecoInfo" style="font-size:0.9rem;color:#81c784;font-weight:700"></span>
+                    <label class="checkbox-opt"><input type="checkbox" id="camisaPago" checked> Já pagou</label>
+                    <button class="btn-venda" onclick="registrarCamiseta()">Registrar Venda</button>
+                </div>
+            </div>
+
+            <div class="export-btns" style="padding:10px 0">
+                <button class="btn-export" onclick="exportarCamisetasPDF()">📄 Exportar PDF</button>
+                <button class="btn-export" onclick="exportarCamisetasCSV()">📥 Exportar CSV</button>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filtros-despesa">
+                <input type="text" id="buscaCamisa" placeholder="🔍 Buscar por nome..." oninput="renderizarCamisetas()" style="padding:6px 12px;border-radius:15px;border:1px solid var(--cor-madeira-clara);background:rgba(0,0,0,0.3);color:var(--cor-palha);font-size:0.82rem;min-width:200px;">
+                <button class="filtro-btn active" data-filtrocamisa="todos" onclick="filtrarCamisetas('todos')">Todas</button>
+                <button class="filtro-btn" data-filtrocamisa="trabalhador" onclick="filtrarCamisetas('trabalhador')">Trabalhador</button>
+                <button class="filtro-btn" data-filtrocamisa="publico" onclick="filtrarCamisetas('publico')">Público</button>
+                <button class="filtro-btn" data-filtrocamisa="pago" onclick="filtrarCamisetas('pago')">Pagos</button>
+                <button class="filtro-btn" data-filtrocamisa="pendente" onclick="filtrarCamisetas('pendente')">Pendentes</button>
+            </div>
+
+            <div class="tabela-box">
+                <table id="tabelaCamisetas">
+                    <thead><tr><th>Nome</th><th>Telefone</th><th>Tipo</th><th>Modelagem</th><th>Tamanho</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="resumo-barraca" id="resumoCamisetas"></div>
+        </section>
+
         <!-- CONFIGURAÇÕES -->
         <section id="sec-config" class="section">
             <h2>⚙️ Configurações</h2>
@@ -993,7 +1064,9 @@
             <a href="caixas.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">🧑‍💼 Caixas</a> |
             <a href="patrocinios.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">🤝 Patrocínios</a> |
             <a href="doacoes.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">💚 Doações</a> |
-            <a href="necessidades.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">📋 Necessidades</a>
+            <a href="necessidades.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">📋 Necessidades</a> |
+            <a href="caixas.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">🧑‍💼 Caixas</a> |
+            <a href="camisetas.html" target="_blank" style="color:#87ceeb;text-decoration:none;margin:0 6px">👕 Camisetas</a>
         </p>
     </footer>
 
