@@ -157,13 +157,10 @@ function renderizarPagina() {
         `).join('') || '<tr><td colspan="8" style="text-align:center;opacity:0.5;padding:15px">Nenhuma camiseta registrada</td></tr>';
     }
 
-    // Resumo
+    // Resumo simples (só contagem, SEM valores financeiros) — esta página é para quem vende
     const todas = dados.camisetas;
     const totalTrab = todas.filter(c => c.tipo === 'trabalhador').length;
     const totalPub = todas.filter(c => c.tipo === 'publico').length;
-    const totalValor = todas.reduce((s, c) => s + (c.valor||0), 0);
-    const totalPago = todas.filter(c => c.pago).reduce((s, c) => s + (c.valor||0), 0);
-    const totalPendente = totalValor - totalPago;
 
     const resumoEl = document.getElementById('resumoCamisetas');
     if (resumoEl) {
@@ -171,9 +168,6 @@ function renderizarPagina() {
             <div class="item neutro"><span>Total Camisetas</span><strong>${todas.length}</strong></div>
             <div class="item neutro"><span>Trabalhador</span><strong>${totalTrab}</strong></div>
             <div class="item neutro"><span>Público</span><strong>${totalPub}</strong></div>
-            <div class="item positivo"><span>Valor Total</span><strong>${R$(totalValor)}</strong></div>
-            <div class="item positivo"><span>Recebido</span><strong>${R$(totalPago)}</strong></div>
-            <div class="item negativo"><span>A receber</span><strong>${R$(totalPendente)}</strong></div>
         `;
     }
 
