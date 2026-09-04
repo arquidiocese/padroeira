@@ -222,9 +222,12 @@
                 totalItens += dados[b].vendas.reduce((s,v) => s + v.qtd, 0);
             }
         });
-        const totalPatr = (dados.patrocinadores||[]).reduce((s,p) => s + p.valor, 0);
+        // Só dinheiro que entra no caixa: patrocínio $ RECEBIDO + doações em dinheiro + camisetas pagas
+        const totalPatr = (dados.patrocinadores||[]).filter(p => (p.tipo||'dinheiro') === 'dinheiro' && p.recebido).reduce((s,p) => s + (p.valor||0), 0);
+        const totalDoacoesEntrada = (dados.doacoesEntrada||[]).reduce((s,d) => s + (d.valor||0), 0);
+        const totalCamisetasPagas = (dados.camisetas||[]).filter(c => c.pago).reduce((s,c) => s + (c.valor||0), 0);
         const totalDesp = (dados.despesas||[]).filter(d => !d.doacao).reduce((s,d) => s + d.valor, 0);
-        const receita = totalVendas + totalPatr;
+        const receita = totalVendas + totalPatr + totalDoacoesEntrada + totalCamisetasPagas;
         const saldo = receita - totalDesp;
 
         document.getElementById('receitaTotal').textContent = `R$ ${receita.toFixed(2)}`;
@@ -333,7 +336,7 @@
         }
 
         // Gráfico Receita vs Despesa
-        const totalPatrDin = (dados.patrocinadores||[]).filter(p=>(p.tipo||'dinheiro')==='dinheiro').reduce((s,p)=>s+(p.valor||0),0);
+        const totalPatrDin = (dados.patrocinadores||[]).filter(p=>(p.tipo||'dinheiro')==='dinheiro' && p.recebido).reduce((s,p)=>s+(p.valor||0),0);
         const ctxRD = document.getElementById('graficoRecDesp');
         if (ctxRD) {
             if (chartRD) chartRD.destroy();

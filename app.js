@@ -897,20 +897,31 @@ function atualizarResumoGeral() {
         totalItens += vendas.reduce((s, v) => s + v.qtd, 0);
     });
 
-    const totalPatrocinadores = dados.patrocinadores.filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s, p) => s + (p.valor||0), 0);
+    const patrsDinheiro = dados.patrocinadores.filter(p => (p.tipo||'dinheiro') === 'dinheiro');
+    // Só patrocínio em dinheiro JÁ RECEBIDO entra no caixa/receita. Pendente fica como "a receber".
+    const totalPatrocinadores = patrsDinheiro.filter(p => p.recebido).reduce((s, p) => s + (p.valor||0), 0);
+    const totalPatrPendente = patrsDinheiro.filter(p => !p.recebido).reduce((s, p) => s + (p.valor||0), 0);
     const totalPatrServico = dados.patrocinadores.filter(p => p.tipo === 'servico').reduce((s, p) => s + (p.valor||0), 0);
     const totalPatrProduto = dados.patrocinadores.filter(p => p.tipo === 'produto').reduce((s, p) => s + (p.valor||0), 0);
+    const totalPatrEspecie = totalPatrServico + totalPatrProduto; // não entra no caixa
     const totalDespesasCompra = dados.despesas.filter(d => !d.doacao).reduce((s, d) => s + (d.valor||0), 0);
     const totalDoacoes = dados.despesas.filter(d => d.doacao).reduce((s, d) => s + (d.valor||0), 0);
     const totalDoacoesEntrada = (dados.doacoesEntrada || []).reduce((s, d) => s + (d.valor||0), 0);
     // Camisetas: só as PAGAS entram na receita (pendentes ficam como "a receber")
     const totalCamisetasPagas = (dados.camisetas || []).filter(c => c.pago).reduce((s, c) => s + (c.valor||0), 0);
 
+    // Receita = só DINHEIRO que entra no caixa (vendas, patrocínio em dinheiro RECEBIDO, doações em dinheiro, camisetas pagas).
+    // Patrocínio pendente ou em serviço/produto NÃO entra na receita (mostrado à parte).
     const receita = totalVendas + totalPatrocinadores + totalDoacoesEntrada + totalCamisetasPagas;
     const saldo = receita - totalDespesasCompra;
 
     document.getElementById('receitaTotal').textContent = R$(receita);
-    document.getElementById('receitaDetalhe').textContent = `Vendas: ${R$(totalVendas)} | Patroc. $: ${R$(totalPatrocinadores)} | Doações: ${R$(totalDoacoesEntrada)} | Camisetas: ${R$(totalCamisetasPagas)}`;
+    let receitaDet = `Vendas: ${R$(totalVendas)} | Patroc. $: ${R$(totalPatrocinadores)} | Doações: ${R$(totalDoacoesEntrada)} | Camisetas: ${R$(totalCamisetasPagas)}`;
+    const extras = [];
+    if (totalPatrPendente > 0) extras.push(`${R$(totalPatrPendente)} em patrocínio a receber`);
+    if (totalPatrEspecie > 0) extras.push(`${R$(totalPatrEspecie)} em serviços/produtos (doação)`);
+    if (extras.length > 0) receitaDet += ` | Não entra no caixa: ${extras.join(' + ')}`;
+    document.getElementById('receitaDetalhe').textContent = receitaDet;
     document.getElementById('gastoTotal').textContent = R$(totalDespesasCompra);
     document.getElementById('gastoDetalhe').textContent = `Doações em produtos: ${R$(totalDoacoes)} (não conta como gasto)`;
 
@@ -1691,13 +1702,17 @@ function gerarPDFComLogo(logoBase64) {
             totalItens += dados[b].vendas.reduce((s,v) => s + v.qtd, 0);
         }
     });
-    const patrDinheiro = (dados.patrocinadores||[]).filter(p => (p.tipo||'dinheiro') === 'dinheiro').reduce((s,p) => s + p.valor, 0);
+    const patrsDin = (dados.patrocinadores||[]).filter(p => (p.tipo||'dinheiro') === 'dinheiro');
+    const patrDinheiro = patrsDin.filter(p => p.recebido).reduce((s,p) => s + (p.valor||0), 0);
+    const patrDinheiroPend = patrsDin.filter(p => !p.recebido).reduce((s,p) => s + (p.valor||0), 0);
     const patrServico = (dados.patrocinadores||[]).filter(p => p.tipo === 'servico').reduce((s,p) => s + p.valor, 0);
     const patrProduto = (dados.patrocinadores||[]).filter(p => p.tipo === 'produto').reduce((s,p) => s + p.valor, 0);
-    const patrTotal = (dados.patrocinadores||[]).reduce((s,p) => s + p.valor, 0);
+    const doacoesEntradaTotalPDF = (dados.doacoesEntrada||[]).reduce((s,d) => s + (d.valor||0), 0);
+    const camisetasPagasPDF = (dados.camisetas||[]).filter(c => c.pago).reduce((s,c) => s + (c.valor||0), 0);
     const despCompras = (dados.despesas||[]).filter(d => !d.doacao).reduce((s,d) => s + d.valor, 0);
     const despDoacoes = (dados.despesas||[]).filter(d => d.doacao).reduce((s,d) => s + d.valor, 0);
-    const receita = totalVendas + patrDinheiro;
+    // Receita = só dinheiro no caixa: vendas + patrocínio $ recebido + doações em dinheiro + camisetas pagas
+    const receita = totalVendas + patrDinheiro + doacoesEntradaTotalPDF + camisetasPagasPDF;
     const saldo = receita - despCompras;
     const meta = dados.meta || 0;
 
@@ -1708,10 +1723,13 @@ function gerarPDFComLogo(logoBase64) {
         body: [
             ['Total de Vendas (barracas)', 'R$ ' + fmt(totalVendas)],
             ['Total de Itens Vendidos', totalItens.toString()],
-            ['Patrocínios em Dinheiro', 'R$ ' + fmt(patrDinheiro)],
-            ['Patrocínios em Serviços (estimado)', 'R$ ' + fmt(patrServico)],
-            ['Patrocínios em Produtos (estimado)', 'R$ ' + fmt(patrProduto)],
-            ['RECEITA TOTAL (vendas + patrocínios $)', 'R$ ' + fmt(receita)],
+            ['Patrocínios em Dinheiro (recebido)', 'R$ ' + fmt(patrDinheiro)],
+            ['Patrocínios em Dinheiro (a receber)', 'R$ ' + fmt(patrDinheiroPend)],
+            ['Doações em Dinheiro', 'R$ ' + fmt(doacoesEntradaTotalPDF)],
+            ['Camisetas (pagas)', 'R$ ' + fmt(camisetasPagasPDF)],
+            ['Patrocínios em Serviços (doação, não entra no caixa)', 'R$ ' + fmt(patrServico)],
+            ['Patrocínios em Produtos (doação, não entra no caixa)', 'R$ ' + fmt(patrProduto)],
+            ['RECEITA TOTAL (dinheiro no caixa)', 'R$ ' + fmt(receita)],
             ['Despesas (compras)', 'R$ ' + fmt(despCompras)],
             ['Itens recebidos como doação', 'R$ ' + fmt(despDoacoes)],
             ['SALDO FINAL', 'R$ ' + fmt(saldo)],
